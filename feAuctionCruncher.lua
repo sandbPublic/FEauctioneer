@@ -1,15 +1,15 @@
+require("feAuctionUnitData")
+
 local auctionStateObj = {}
 function auctionStateObj:new()
 	local o = {}
 	setmetatable(o, self)
 	self.__index = self
-	
-	o.numOf_players = 0
+		
 	o.players = {} -- strings
-	o.numOf_units = 0
-	o.units = {} -- strings
-	o.chapters = {} -- chapter the unit appears
-	o.promoItems = {} -- item unit uses to promote, if any
+	o.players.count = 0	
+	o.units = {} -- names, chapter, promo
+	o.units.count = 0
 	o.promoItemTotals = {}
 	
 	o.bids = {} -- PxU array of numbers
@@ -23,25 +23,31 @@ function auctionStateObj:new()
 end
 
 -- promo items
-local promo_NO = 0 -- can't promote
-local promo_HC = 1 -- hero crest
-local promo_KC = 2 -- knight crest
-local promo_OB = 3 -- orion's bolt
-local promo_EW = 4 -- elysian whip
-local promo_GR = 5 -- guiding ring
-local promo_FC = 6 -- fell contract
-local promo_OS = 7 -- ocean seal
-local promo_HS = 8 -- heaven seal
-
 local promoStrings = {"hC", "kC", "oB", "eW", "gR", "fC", "oS", "hS"}
 promoStrings[0] = "No"
 
-function auctionStateObj:initialize()
+-- using indexes instead of named table fields allows for more organized unitData
+local name_I = 1
+local chapter_I = 2
+local promo_I = 3
+
+-- takes in a table from unitData
+function auctionStateObj:initialize(version)
+	-- load data
+	self.units = {}
+	self.units.count = 0
+	while version[self.units.count+1] do
+		self.units.count = self.units.count + 1		
+		self.units[self.units.count] = 
+			version[self.units.count]
+	end
+	
 	local totalBids = 0
-	for player_i = 1, self.numOf_players do
+	print(self.bids)
+	for player_i = 1, self.players.count do
 		self.assignedTo[player_i] = {}
 		self.wasAssignedTo[player_i] = {}
-		for unit_i = 1, self.numOf_units do
+		for unit_i = 1, self.units.count do
 			totalBids = totalBids + self.bids[player_i][unit_i]
 			self.assignedTo[player_i][unit_i] = false
 			self.wasAssignedTo[player_i][unit_i] = false
@@ -51,26 +57,26 @@ function auctionStateObj:initialize()
 	for promoItem_i = 0, 8 do
 		self.promoItemTotals[promoItem_i] = 0
 	end
-	for unit_i = 1, self.numOf_units do
-		self.promoItemTotals[self.promoItems[unit_i]] = 
-			self.promoItemTotals[self.promoItems[unit_i]] + 1
+	for unit_i = 1, self.units.count do
+		self.promoItemTotals[self.units[unit_i][promo_I]] = 
+			self.promoItemTotals[self.units[unit_i][promo_I]] + 1
 	end
 	
-	self.prefViolationFactor = self.numOf_players/totalBids
+	self.prefViolationFactor = self.players.count/totalBids
 end
 
 -- can make unbalanced teams
 -- assign each unit to the player(s) with the greatest bid for them
 function auctionStateObj:initialAssign()	
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		local maxBid = -1
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			if self.bids[player_i][unit_i] >= maxBid then
 				maxBid = self.bids[player_i][unit_i]
 			end
 		end
 		
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			self.assignedTo[player_i][unit_i] = (self.bids[player_i][unit_i] == maxBid)
 		end
 	end
@@ -80,14 +86,14 @@ function auctionStateObj:printBids()
 	print("")
 	print("-BIDS-")
 	local str = "           "
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		str = str .. string.format("%-10.10s ", self.players[player_i])
 	end
 	print(str)
 	
-	for unit_i = 1, self.numOf_units do
-		str = string.format("%-10.10s ", self.units[unit_i])
-		for player_i = 1, self.numOf_players do
+	for unit_i = 1, self.units.count do
+		str = string.format("%-10.10s ", self.units[unit_i][name_I])
+		for player_i = 1, self.players.count do
 			str = str ..  string.format("%-10.10s ", 
 				string.format("%05.2f", self.bids[player_i][unit_i]))
 		end
@@ -97,7 +103,7 @@ function auctionStateObj:printBids()
 end
 
 function auctionStateObj:findOwner(unit_i)
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self.assignedTo[player_i][unit_i] then
 			return player_i
 		end
@@ -113,7 +119,7 @@ function auctionStateObj:handicapPrice(unit_i)
 	-- find largest bid not greater than that, from player not assigned to, at least 0
 	-- bids from past owners should be larger than current, hence not considered again
 	local secondPrice = -1
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if (self.bids[player_i][unit_i] <= ownerBid and
 		   self.bids[player_i][unit_i] >= secondPrice and
 		   not self.assignedTo[player_i][unit_i]) then
@@ -123,11 +129,11 @@ function auctionStateObj:handicapPrice(unit_i)
 	end
 	
 	if secondPrice >= 0 then
-		return secondPrice + (ownerBid - secondPrice)/self.numOf_players
+		return secondPrice + (ownerBid - secondPrice)/self.players.count
 	else -- owner(s) in last place, special behavior, pay 2nd-to-last price
 	
 		local secondLastPrice = 999
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			if (self.bids[player_i][unit_i] <= secondLastPrice and
 			   not self.assignedTo[player_i][unit_i]) then
 			   
@@ -138,13 +144,13 @@ function auctionStateObj:handicapPrice(unit_i)
 			return self.bids[1][unit_i] -- assigned to all players
 		end
 		
-		return ownerBid + (secondLastPrice - ownerBid)/self.numOf_players
+		return ownerBid + (secondLastPrice - ownerBid)/self.players.count
 	end
 end
 
 function auctionStateObj:totalHandicap(player_i)
 	local hc = 0
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		if self.assignedTo[player_i][unit_i] then
 			hc = hc + self:handicapPrice(unit_i)
 		end
@@ -155,7 +161,7 @@ end
 -- determines tiebreaks, give to team with lowest total value
 function auctionStateObj:totalValue(player_i)
 	local value = 0
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		if self.assignedTo[player_i][unit_i] then
 			value = value + self.bids[player_i][unit_i]
 		end
@@ -165,20 +171,20 @@ end
 
 function auctionStateObj:printTeams()
 	local smallestHCtotal = 999
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self:totalHandicap(player_i) < smallestHCtotal then
 			smallestHCtotal = self:totalHandicap(player_i)
 		end
 	end
 	
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		print("")
 		print(string.format("%-10.10s price | bid", self.players[player_i]))
 		
-		for unit_i = 1, self.numOf_units do
+		for unit_i = 1, self.units.count do
 			if self.assignedTo[player_i][unit_i] then
 				local str = string.format("%-10.10s %05.2f | %05.2f", 
-					self.units[unit_i], self:handicapPrice(unit_i), self.bids[player_i][unit_i])			
+					self.units[unit_i][name_I], self:handicapPrice(unit_i), self.bids[player_i][unit_i])			
 				print(str)
 			end
 		end
@@ -191,7 +197,7 @@ end
 function auctionStateObj:tieExistsFor(unit_i)
 	-- find unit assigned to multiple teams
 	local alreadyAssigned = false
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self.assignedTo[player_i][unit_i] then
 			if alreadyAssigned then
 				return true
@@ -205,7 +211,7 @@ end
 
 -- returns earliest index of a tie if true, false if not
 function auctionStateObj:tieExists()
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		if self:tieExistsFor(unit_i) then 
 			return unit_i
 		end
@@ -225,7 +231,7 @@ function auctionStateObj:resolveTie(printV)
 		-- who among tied players has lowest total value?
 		local lowestValue = 999
 		local lowestValue_i = 0
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			if self.assignedTo[player_i][tie_i] and
 				self:totalValue(player_i) <= lowestValue then
 				
@@ -235,7 +241,7 @@ function auctionStateObj:resolveTie(printV)
 		end
 		
 		-- unassign unit from every other player, assign to player
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			if self.assignedTo[player_i][tie_i] then
 				if player_i ~= lowestValue_i then
 					str = str .. string.format("%-10.10s ", self.players[player_i])
@@ -243,10 +249,10 @@ function auctionStateObj:resolveTie(printV)
 			end
 			self.assignedTo[player_i][tie_i] = (player_i == lowestValue_i)
 		end
-		str = str .. "->" .. string.format("%-10.10s ", self.units[tie_i])
+		str = str .. "->" .. string.format("%-10.10s ", self.units[tie_i][name_I])
 		
 		-- print to player
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			if self.assignedTo[player_i][tie_i] then
 				str = str .. "->" .. string.format("%-10.10s ", self.players[player_i])
 			end
@@ -259,7 +265,7 @@ end
 
 function auctionStateObj:teamSize(player_i)
 	local ret = 0
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		if self.assignedTo[player_i][unit_i] then
 			ret = ret + 1
 		end
@@ -268,7 +274,7 @@ function auctionStateObj:teamSize(player_i)
 end
 
 function auctionStateObj:filledNum()
-	return self.numOf_units/self.numOf_players
+	return self.units.count/self.players.count
 end
 
 function auctionStateObj:teamOverfilled(player_i)
@@ -276,7 +282,7 @@ function auctionStateObj:teamOverfilled(player_i)
 end
 
 function auctionStateObj:existOverfilledTeam()
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self:teamOverfilled(player_i) then
 			return true
 		end
@@ -289,7 +295,7 @@ function auctionStateObj:teamUnderfilled(player_i)
 end
 
 function auctionStateObj:existUnderfilledTeam()
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self:teamUnderfilled(player_i) then
 			return true
 		end
@@ -310,11 +316,11 @@ function auctionStateObj:reassignFrom(overfilled, printV)
 	local lowestDif_i = 0
 	local lowestDif = 999
 	
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if (overfilled and self:teamOverfilled(player_i)) -- moving from overfilled
 			or (not overfilled and not self:teamUnderfilled(player_i))then -- moving from filled
 			
-			for unit_i = 1, self.numOf_units do
+			for unit_i = 1, self.units.count do
 				if self.assignedTo[player_i][unit_i] then
 					-- found a player/unit combo that can move					
 					if self.bids[player_i][unit_i] <= leastDesired_value then
@@ -323,7 +329,7 @@ function auctionStateObj:reassignFrom(overfilled, printV)
 					end
 					
 					-- check other players for differential
-					for player_j = 1, self.numOf_players do
+					for player_j = 1, self.players.count do
 						if not self.wasAssignedTo[player_j][unit_i] and 
 							not self.assignedTo[player_j][unit_i] then
 							
@@ -343,20 +349,20 @@ function auctionStateObj:reassignFrom(overfilled, printV)
 	local reassign_i = lowestDif_i
 	
 	-- remove from teams that have, and mark as previously had
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self.assignedTo[player_i][reassign_i] then
 			self.assignedTo[player_i][reassign_i] = false
 			self.wasAssignedTo[player_i][reassign_i] = true
 			
 			str = str .. string.format("%-10.10s ->%-10.10s ->", 
-				self.players[player_i], self.units[reassign_i])
+				self.players[player_i], self.units[reassign_i][name_I])
 		end
 	end
 	
 	-- reassign to team that desires most, that hasn't had
 	local mostDesire = -99
 	local mostDesire_players = {}
-	for player_i = 1, self.numOf_players do	
+	for player_i = 1, self.players.count do	
 		if self.bids[player_i][reassign_i] >= mostDesire and 
 			not self.wasAssignedTo[player_i][reassign_i] then
 			
@@ -364,7 +370,7 @@ function auctionStateObj:reassignFrom(overfilled, printV)
 		end
 	end
 	
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if self.bids[player_i][reassign_i] >= mostDesire and 
 			not self.wasAssignedTo[player_i][reassign_i] then
 			
@@ -394,8 +400,8 @@ function auctionStateObj:swapUnits(unit_i, unit_j, printV)
 
 	if printV then
 		print(string.format("Swapping: %-10.10s %-10.10s <-> %-10.10s %-10.10s",
-				self.players[player_i], self.units[unit_i],
-				self.players[player_j], self.units[unit_j]))
+				self.players[player_i], self.units[unit_i][name_I],
+				self.players[player_j], self.units[unit_j][name_I]))
 	end
 	
 	self.assignedTo[player_i][unit_i] = false
@@ -413,9 +419,9 @@ function auctionStateObj:cleanupPrefViolation(printV)
 	local maxSwap_i = 0
 	local maxSwap_j = 0
 	
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		local player_i = self:findOwner(unit_i)
-		for unit_j = 1, self.numOf_units do
+		for unit_j = 1, self.units.count do
 			local player_j = self:findOwner(unit_j)
 			
 			local swapValue = (self.bids[player_i][unit_j] + self.bids[player_j][unit_i]) -- swapped bid sum
@@ -442,9 +448,9 @@ end
 -- however, team balance and chapter gap smoothing provide an incentive to violate that principle.
 function auctionStateObj:averagePreferenceViolation()
 	local violations = 0
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		local highestBid = 0
-		for player_i = 1, self.numOf_players do
+		for player_i = 1, self.players.count do
 			if highestBid < self.bids[player_i][unit_i] then
 				highestBid = self.bids[player_i][unit_i]
 			end
@@ -458,70 +464,67 @@ end
 -- takes 2D array, eg first dimension players, second dimension value
 local function sumOfSquares(array)
 	local sum = 0
-	local i = 1 -- starting at 1 correctly skips non-promoters
+	local i = 1 -- non-promoters are marked with 0 so they are correctly skipped
 	while array[i] do
 		local sumOfSquares = 0
 		local j = 1
 		while array[i][j] do
 			sumOfSquares = sumOfSquares + array[i][j]*array[i][j]
 			j = j + 1
-			if j > 10000 then print("BAD J") end
 		end
 		sum = sum + sumOfSquares
 		i = i + 1
-		
-		if i > 10000 then print("BAD I") end
 	end
 	return sum
 end
 
--- gaps between drafted units appearing, numOf_player X (teamSize + 1) array
+-- gaps between drafted units appearing, player.count X (teamSize + 1) array
 -- values normalized
 function auctionStateObj:chapterGaps(printV)
 	local ret = {}
-	local totalGap = self.chapters[self.numOf_units] - self.chapters[1]
+	local totalGap = self.units[self.units.count][chapter_I] - self.units[1][chapter_I]
 	
 	if printV then
 		print()
 		print("Chapter gaps")
 	end
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if printV then 
 			print() 
 			print(self.players[player_i]) 
 		end
 		
 		ret[player_i] = {}
-		local lastChapter = self.chapters[1] -- first chapter a unit can be available
+		local prevChapter = self.units[1][chapter_I] -- first chapter a unit can be available
 		local gap_i = 1
 		local gap = 0
 		local normalized = 0
-		for unit_i = 1, self.numOf_units do
+		for unit_i = 1, self.units.count do
 			if self.assignedTo[player_i][unit_i] then
 			
-				gap = self.chapters[unit_i] - lastChapter
+				gap = self.units[unit_i][chapter_I] - prevChapter
 				normalized = gap/totalGap
 				
 				if printV then
 					print(string.format("%-10.10s %2d %2d/%2d=%4.2f %4.2f", 
-						self.units[unit_i], self.chapters[unit_i], gap, totalGap,
+						self.units[unit_i][name_I], self.units[unit_i][chapter_I], gap, totalGap,
 						normalized, normalized*normalized))
 				end				
 				ret[player_i][gap_i] = normalized
-				lastChapter = self.chapters[unit_i]
+				prevChapter = self.units[unit_i][chapter_I]
 				gap_i = gap_i + 1
 			end	
 		end
 		
 		-- gap to end
-		gap = self.chapters[self.numOf_units] - lastChapter
+		gap = self.units[self.units.count][chapter_I] - prevChapter
 		normalized = gap/totalGap
 		
 		ret[player_i][gap_i] = normalized
 		
 		if printV then
 			print(string.format("-end-      %2d %2d/%2d=%4.2f %4.2f",
-				self.chapters[self.numOf_units], gap, totalGap,
+				self.units[self.units.count][chapter_I], gap, totalGap,
 				normalized, normalized*normalized))
 		
 			local sumOfSq = 0
@@ -550,7 +553,7 @@ function auctionStateObj:promoClasses(printV)
 		print()
 		print("Promo classes")
 	end
-	for player_i = 1, self.numOf_players do
+	for player_i = 1, self.players.count do
 		if printV then 
 			print() 
 			print(self.players[player_i]) 
@@ -562,10 +565,10 @@ function auctionStateObj:promoClasses(printV)
 			count[player_i][promoItem_i] = 0
 		end
 		
-		for unit_i = 1, self.numOf_units do
+		for unit_i = 1, self.units.count do
 			if self.assignedTo[player_i][unit_i] then
-				count[player_i][self.promoItems[unit_i]] = 
-					count[player_i][self.promoItems[unit_i]] + 1
+				count[player_i][self.units[unit_i][promo_I]] = 
+					count[player_i][self.units[unit_i][promo_I]] + 1
 			end	
 		end
 		
@@ -611,10 +614,10 @@ function auctionStateObj:finesseTeams(threshold, printV)
 	local savedCGSoS = sumOfSquares(self:chapterGaps())
 	local savedPCSoS = sumOfSquares(self:promoClasses())
 	
-	for unit_i = 1, self.numOf_units do
+	for unit_i = 1, self.units.count do
 		local player_i = self:findOwner(unit_i) 
 		
-		for unit_j = unit_i+1, self.numOf_units do
+		for unit_j = unit_i+1, self.units.count do
 			local player_j = self:findOwner(unit_j)
 			
 			-- try swap
@@ -692,8 +695,8 @@ function auctionStateObj:finesseTeams(threshold, printV)
 	return false
 end
 
-function auctionStateObj:standardProcess()		
-	self:initialize()
+function auctionStateObj:standardProcess(version)		
+	self:initialize(version)
 	self:printBids()
 	self:initialAssign()
 	
@@ -757,29 +760,8 @@ end
 
 -- no Wallace/Geitz or Harken/Karel
 local FE7auction2 = auctionStateObj:new()
-FE7auction2.numOf_players = 5
 FE7auction2.players = {"P1", "P2", "P3", "P4", "P5"}
-FE7auction2.numOf_units = 35
-FE7auction2.units = {
-"Matthew", "Serra", "Oswin", "Eliwood", "Lowen", "Rebecca", "Dorcas", "Bartre&Karla", 
-"Marcus<=19x", "Guy", "Erk", "Priscilla", "Florina", "Lyn", "Sain", "Kent", "Wil", "Raven", 
-"Lucius", "Canas", "Dart", "Fiora", "Legault", "Marcus>=20", "Isadora", "Heath", "Rath", 
-"Hawkeye", "Farina", "Pent", "Louise", "Nino", "Jaffar", "Vaida", "Renault"}
-
--- indexed from 0, not 11, gaidens count as normal
-FE7auction2.chapters = { -- Matthew is free for ch 11, Lyn~Wil for ch 16
-1, 1, 1, 1, 1, 1, 1, 1,
-1, 2, 4, 4, 6, 7, 7, 7, 7, 7,
-7, 8, 10, 10, 12, 12, 14, 14, 14,
-15, 18, 19, 19, 21, 22, 23, 27
-}
-
-FE7auction2.promoItems = {
-promo_FC, promo_GR, promo_KC, promo_HS, promo_KC, promo_OB, promo_HC, promo_HC,
-promo_NO, promo_HC, promo_GR, promo_GR, promo_EW, promo_HS, promo_KC, promo_KC, promo_OB, promo_HC,
-promo_GR, promo_GR, promo_OS, promo_EW, promo_FC, promo_NO, promo_NO, promo_EW, promo_OB,
-promo_NO, promo_EW, promo_NO, promo_NO, promo_GR, promo_NO, promo_NO, promo_NO
-}
+FE7auction2.players.count = 5
 
 FE7auction2.bids = {
 {5.07, 3.65, 4.28, 6.32, 9.88, 3.02, 3.95, 3.02, 
@@ -794,7 +776,7 @@ FE7auction2.bids = {
 
 for player_i = 2, 5 do
 	local playerWeight = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
-	for unit_i = 1, FE7auction2.numOf_units do
+	for unit_i = 1, 35 do
 		FE7auction2.bids[player_i][unit_i] = 
 			FE7auction2.bids[1][unit_i] 
 				* playerWeight * (1 + 0.6*(math.random()-0.5))
@@ -802,38 +784,23 @@ for player_i = 2, 5 do
 end
 
 print("FE7auction2")
-FE7auction2:standardProcess()
+FE7auction2:standardProcess(unitData.sevenHNM)
 
-local asObj_FE7fourPlayer = auctionStateObj:new()
-asObj_FE7fourPlayer.numOf_players = 4
-asObj_FE7fourPlayer.players = {"Wargrave", "Carmine", "Horace", "Baldrick"}
-asObj_FE7fourPlayer.numOf_units = 32
-asObj_FE7fourPlayer.units = {
+local FE7auction1 = auctionStateObj:new()
+FE7auction1.players.count = 4
+FE7auction1.players = {"Wargrave", "Carmine", "Horace", "Baldrick"}
+FE7auction1.units.count = 32
+FE7auction1.units = {
 "Matthew", "Serra", "Oswin", "Eliwood", "Lowen", "Rebecca", "Dorcas", "Bartre+K", "Guy", "Erk", 
 "Priscilla", "Florina", "Lyn", "Sain", "Kent", "Wil", "Raven", "Lucius", "Canas", "Dart", "Fiora", 
 "Legault", "Isadora", "Heath", "Rath", "Hawkeye", "Farina", "Pent", "Louise", "Nino", "Jaffar", 
 "Vaida"}
 
--- indexed from 0, not 11, gaidens count as normal
-asObj_FE7fourPlayer.chapters = { -- Matthew is free for ch 11, Lyn~Wil for ch 16
-1, 1, 1, 1, 1, 1, 1, 1, 2, 4, 
-4, 6, 7, 7, 7, 7, 7, 7, 8, 10, 10, 
-12, 14, 14, 14, 15, 18, 19, 19, 21, 22, 
-23
-}
-
-asObj_FE7fourPlayer.promoItems = {
-promo_FC, promo_GR, promo_KC, promo_HS, promo_KC, promo_OB, promo_HC, promo_HC, promo_HC, promo_GR, 
-promo_GR, promo_EW, promo_HS, promo_KC, promo_KC, promo_OB, promo_HC, promo_GR, promo_GR, promo_OS, promo_EW, 
-promo_FC, promo_NO, promo_EW, promo_OB, promo_NO, promo_EW, promo_NO, promo_NO, promo_GR, promo_NO, 
-promo_NO
-}
-
-asObj_FE7fourPlayer.bids = {
+FE7auction1.bids = {
 {3.2, 3.5, 3.5, 3.5, 9.8, 1.7, 2.3, 1.9, 1.8, 5.5, 4.5, 12.5, 1.4, 9.2, 8.8, 1.6, 2.5, 3.3, 2.7, 2.2, 6.5, 1.7, 2, 5.2, 2.8, 1.8, 3.1, 3.1, 1.5, 0.9, 1.5, 2.6},
 {3, 2, 4, 4.5, 12, 0.5, 6.5, 3, 1, 12, 5, 13, 0.5, 8, 8, 0.5, 2, 9, 12, 1, 7, 1, 5.5, 10.5, 7.5, 3.5, 4, 7, 1, 0, 2.25, 4},
 {4.1, 4.1, 5.1, 5.1, 10.1, 3.1, 3.1, 3.1, 0, 8.1, 5.1, 0, 2.1, 6.1, 6.1, 3.1, 2.1, 6.1, 7.1, 2.1, 10.1, 0, 1.1, 10.1, 5.1, 2.1, 0.1, 2.1, 0.1, 0.2, 1.1, 1.1},
 {8, 5, 6, 10, 12, 3, 1, 1, 1, 8, 9, 11, 4, 10, 10, 2, 1, 4, 4, 5, 7, 2, 6, 14, 4, 4, 3, 7, 2, 15, 2, 2}}
 
 --print("FE7auction1")
---asObj_FE7fourPlayer:standardProcess()
+--FE7auction1:standardProcess()
