@@ -480,6 +480,7 @@ end
 
 -- gaps between drafted units appearing, player.count X (teamSize + 1) array
 -- values normalized
+-- assumes units are sorted by chapter join time
 function auctionStateObj:chapterGaps(printV)
 	local ret = {}
 	local totalGap = self.units[self.units.count][chapter_I] - self.units[1][chapter_I]
