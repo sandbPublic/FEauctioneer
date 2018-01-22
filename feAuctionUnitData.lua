@@ -11,7 +11,7 @@ local promo_FC = 6 -- fell contract
 local promo_OS = 7 -- ocean seal
 local promo_HS = 8 -- heaven seal
 
--- FE6 Normal Mode
+-- FE6 Normal Mode, chapters from 0
 P.sixNM = {
 	--chapter 1/0
 	--{"Roy", 0, promo_HS},
@@ -104,7 +104,7 @@ P.sixNM = {
 	--25/30
 }
 
--- FE7 Hector Normal Mode
+-- FE7 Hector Normal Mode, chapters from 0
 P.sevenHNM = {
 	-- chapter 11/0
 	-- 12/1
@@ -176,6 +176,44 @@ P.sevenHNM = {
 	--32x/28
 	--33/29
 	--{"Athos", 29, promo_NO}
+}
+
+-- FE8 Hard Mode, chapters from 0 (prologue, 5x=8 as they are not available for 6&7)
+P.eightHM = {
+	--{"Eirika", 0, promo_HS},
+	--{"Seth", 0, promo_NO},
+	{"Franz", 1, promo_KC},
+	{"Gilliam", 1, promo_KC},
+	{"Vanessa", 2, promo_EW},
+	{"Moulder", 2, promo_GR},
+	{"Ross", 2, promo_OS}, -- can HC
+	{"Garcia", 2, promo_HC},
+	{"Neimi", 3, promo_OB},
+	{"Colm", 3, promo_OS},
+	{"Artur", 4, promo_GR},
+	{"Lute", 4, promo_GR},
+	{"Natasha", 5, promo_GR},
+	{"Joshua", 5, promo_HC},
+	{"Ephraim", 8, promo_HS}, --5x
+	{"Forde", 8, promo_KC},
+	{"Kyle", 8, promo_KC},
+	--{"Orson", 5.5, promo_NO},
+	{"Tana", 9, promo_EW}, -- same in both routes, mostly unuseable in eph9
+	{"Amelia", 9, promo_KC}, -- returns in eir 13
+	{"Gerik", 10, promo_HC}, -- 13 eph
+	--{"Tethys", 10, promo_NO}, -- 13 eph
+	{"Innes", 10, promo_NO}, -- 15 eph
+	{"Marisa", 10, promo_HC}, -- 12 eph
+	{"Dozla", 11, promo_NO},
+	{"L'Arachel", 11, promo_GR},
+	{"Saleh", 12, promo_NO}, -- 15 eph 
+	{"Ewan", 12, promo_GR},
+	{"Cormag", 13, promo_EW}, -- 10 eph
+	{"Rennac", 14, promo_NO},
+	{"Duessel", 15, promo_NO}, -- 10 eph
+	{"Knoll", 15, promo_GR},
+	--{"Myrrh", 16, promo_NO},
+	{"Syrene", 17, promo_NO}
 }
 
 return unitData
