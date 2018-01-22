@@ -23,8 +23,8 @@ function auctionStateObj:new()
 end
 
 -- promo items
-local promoStrings = {"hC", "kC", "oB", "eW", "gR", "fC", "oS", "hS"}
-promoStrings[0] = "No"
+local promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC"}
+promoStrings[0] = "None "
 
 -- using indexes instead of named table fields allows for more organized unitData
 local name_I = 1
@@ -43,7 +43,6 @@ function auctionStateObj:initialize(version)
 	end
 	
 	local totalBids = 0
-	print(self.bids)
 	for player_i = 1, self.players.count do
 		self.assignedTo[player_i] = {}
 		self.wasAssignedTo[player_i] = {}
@@ -507,7 +506,7 @@ function auctionStateObj:chapterGaps(printV)
 				normalized = gap/totalGap
 				
 				if printV then
-					print(string.format("%-10.10s %2d %2d/%2d=%4.2f %4.2f", 
+					print(string.format("%-10.10s %2d %2d/%2d=%5.3f %5.3f", 
 						self.units[unit_i][name_I], self.units[unit_i][chapter_I], gap, totalGap,
 						normalized, normalized*normalized))
 				end				
@@ -524,7 +523,7 @@ function auctionStateObj:chapterGaps(printV)
 		ret[player_i][gap_i] = normalized
 		
 		if printV then
-			print(string.format("-end-      %2d %2d/%2d=%4.2f %4.2f",
+			print(string.format("-end-      %2d %2d/%2d=%5.3f %5.3f",
 				self.units[self.units.count][chapter_I], gap, totalGap,
 				normalized, normalized*normalized))
 		
@@ -532,7 +531,7 @@ function auctionStateObj:chapterGaps(printV)
 			for gap_i2 = 1, gap_i do
 				sumOfSq = sumOfSq + ret[player_i][gap_i2]*ret[player_i][gap_i2]
 			end
-			print(string.format("sum of squares:          %4.2f", sumOfSq))
+			print(string.format("sum of squares:           %5.3f", sumOfSq))
 		end
 	end
 	
@@ -585,12 +584,12 @@ function auctionStateObj:promoClasses(printV)
 			sumOfSq = sumOfSq + square
 			
 			if printV and count[player_i][promoItem_i] > 0 then
-				print(string.format("%s %d/%d=%4.2f %4.2f", 
+				print(string.format("%s %d/%d=%5.3f  %5.3f", 
 					promoStrings[promoItem_i], count[player_i][promoItem_i], 
 					self.promoItemTotals[promoItem_i], normalized, square))
 			end
 		end
-		if printV then print(string.format("sum of squares:  %4.2f", sumOfSq)) end
+		if printV then print(string.format("sum of squares:  %5.3f", sumOfSq)) end
 	end
 	
 	if printV then
@@ -664,12 +663,12 @@ function auctionStateObj:finesseTeams(threshold, printV)
 	end
 	
 	local function printChange()
-		print(string.format("old CGSoS %8.6f, old PCSoS %8.6f, old prefVio %8.6f",
+		print(string.format("old CGSoS %8.6f, PCSoS %8.6f, prefVio %8.6f",
 			savedCGSoS, savedPCSoS, savedPrefViolation*100) .. "%")
 		
 		self:swapUnits(maxSwap_i, maxSwap_j, true)
 		
-		print(string.format("new CGSoS %8.6f, new PCSoS %8.6f, new prefVio %8.6f",
+		print(string.format("new CGSoS %8.6f, PCSoS %8.6f, prefVio %8.6f",
 			sumOfSquares(self:chapterGaps()), sumOfSquares(self:promoClasses()),
 			self:averagePreferenceViolation()*100) .. "%")
 			

@@ -2,14 +2,14 @@ local P = {}
 unitData = P
 
 local promo_NO = 0 -- can't promote
-local promo_HC = 1 -- hero crest
-local promo_KC = 2 -- knight crest
+local promo_KC = 1 -- knight crest
+local promo_HC = 2 -- hero crest
 local promo_OB = 3 -- orion's bolt
 local promo_EW = 4 -- elysian whip
 local promo_GR = 5 -- guiding ring
-local promo_FC = 6 -- fell contract
+local promo_HS = 6 -- heaven seal
 local promo_OS = 7 -- ocean seal
-local promo_HS = 8 -- heaven seal
+local promo_FC = 8 -- fell contract
 
 -- FE6 Normal Mode, chapters from 0
 P.sixNM = {
