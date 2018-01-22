@@ -398,6 +398,8 @@ function auctionStateObj:swapUnits(unit_i, unit_j, printV)
 	local player_j = self:findOwner(unit_j)
 
 	if printV then
+		if unit_i == 0 or unit_j == 0 then print(tostring(unit_i) .. tostring(unit_j)) end
+	
 		print(string.format("Swapping: %-10.10s %-10.10s <-> %-10.10s %-10.10s",
 				self.players[player_i], self.units[unit_i][name_I],
 				self.players[player_j], self.units[unit_j][name_I]))
@@ -607,8 +609,8 @@ function auctionStateObj:finesseTeams(threshold, printV)
 	-- if no PrefVio loss, then just gain, don't divide by 0
 	local noPrefVioLoss = false
 	
-	local maxSwap_i = 0
-	local maxSwap_j = 0
+	local maxSwap_i = 1 -- default to 1, defaulting to 0 causes an issue when all bids are tied, possibly in other situations
+	local maxSwap_j = 1
 	
 	local savedPrefViolation = self:averagePreferenceViolation()
 	local savedCGSoS = sumOfSquares(self:chapterGaps())
@@ -641,9 +643,11 @@ function auctionStateObj:finesseTeams(threshold, printV)
 							swapValue = weightedGain
 						end
 					else
-						if prefVioLoss == 0 and weightedGain > 0 then
-							noPrefVioLoss = true						
-							bestSwapValue = -1 -- reset standards							
+						if prefVioLoss == 0 then
+							if weightedGain > 0 then
+								noPrefVioLoss = true						
+								bestSwapValue = -1 -- reset standards
+							end
 							swapValue = weightedGain
 						else
 							swapValue = weightedGain/prefVioLoss
@@ -756,18 +760,18 @@ function auctionStateObj:standardProcess(version)
 	print("END")
 end
 
---"Franz", "Gilliam", "Moulder", "Vanessa", "Ross", "Garcia","Neimi", "Colm", "Artur", "Lute", "Natasha", "Joshua", "Forde", "Kyle", "Tana", "Amelia", "Innes", "Gerik", "Marisa", "L'Arachel", "Dozla", "Cormag", "Saleh", "Ewan", "Rennac", "Duessel", "Knoll", "Syrene"
-
--- no Wallace/Geitz or Harken/Karel
 local FE7auction2 = auctionStateObj:new()
 FE7auction2.players = {"P1", "P2", "P3", "P4", "P5"}
 FE7auction2.players.count = 5
 
 FE7auction2.bids = {
-{5.07, 3.65, 4.28, 6.32, 9.88, 3.02, 3.95, 3.02, 
-7.0, 1.2, 9.07, 6.07, 11.38, 1.58, 8.3, 8.2, 2.27, 2.2, 
-6.82, 8.32, 2.9, 7.78, 1.18, 7.0, 2.88, 11.38, 5.7, 
-2.45, 0.82, 7, 1.13, 4.42, 1.2, 2.95, 0},
+{5.07, 3.65, 4.28, 6.32, 9.88, 
+3.02, 3.95, 3.02, 7.0, 1.2, 
+9.07, 6.07, 11.38, 1.58, 8.3, 
+8.2, 2.27, 2.2, 6.82, 8.32, 
+2.9, 7.78, 7.0, 1.18, 2.88, 
+11.38, 5.7, 2.45, 0.82, 7, 
+1.13, 4.42, 1.2, 2.95, 0},
 {},
 {},
 {},
@@ -775,11 +779,13 @@ FE7auction2.bids = {
 }
 
 for player_i = 2, 5 do
-	local playerWeight = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
-	for unit_i = 1, 35 do
-		FE7auction2.bids[player_i][unit_i] = 
-			FE7auction2.bids[1][unit_i] 
-				* playerWeight * (1 + 0.6*(math.random()-0.5))
+	if not FE7auction2.bids[player_i][1] then
+		local playerWeight = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
+		for unit_i = 1, 35 do
+			FE7auction2.bids[player_i][unit_i] = 
+				FE7auction2.bids[1][unit_i] 
+					--* playerWeight * (1 + 0.6*(math.random()-0.5))
+		end
 	end
 end
 
@@ -787,14 +793,8 @@ print("FE7auction2")
 FE7auction2:standardProcess(unitData.sevenHNM)
 
 local FE7auction1 = auctionStateObj:new()
-FE7auction1.players.count = 4
 FE7auction1.players = {"Wargrave", "Carmine", "Horace", "Baldrick"}
-FE7auction1.units.count = 32
-FE7auction1.units = {
-"Matthew", "Serra", "Oswin", "Eliwood", "Lowen", "Rebecca", "Dorcas", "Bartre+K", "Guy", "Erk", 
-"Priscilla", "Florina", "Lyn", "Sain", "Kent", "Wil", "Raven", "Lucius", "Canas", "Dart", "Fiora", 
-"Legault", "Isadora", "Heath", "Rath", "Hawkeye", "Farina", "Pent", "Louise", "Nino", "Jaffar", 
-"Vaida"}
+FE7auction1.players.count = 4
 
 FE7auction1.bids = {
 {3.2, 3.5, 3.5, 3.5, 9.8, 1.7, 2.3, 1.9, 1.8, 5.5, 4.5, 12.5, 1.4, 9.2, 8.8, 1.6, 2.5, 3.3, 2.7, 2.2, 6.5, 1.7, 2, 5.2, 2.8, 1.8, 3.1, 3.1, 1.5, 0.9, 1.5, 2.6},
