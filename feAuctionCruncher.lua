@@ -97,6 +97,8 @@ function auctionStateObj:readBids(bidFile, numPlayers)
 			end
 		end
 	end
+	
+	io.input():close()
 end
 
 -- can make unbalanced teams
@@ -819,5 +821,5 @@ FE7auction2.bids = {
 }
 
 print("FE7auction2")
-FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.txt", 2)
+FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 2)
 FE7auction2:standardProcess()
