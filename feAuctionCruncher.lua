@@ -32,7 +32,7 @@ local chapter_I = 2
 local promo_I = 3
 
 -- takes in a table from unitData
-function auctionStateObj:initialize(version)
+function auctionStateObj:initialize(version, bidFile, numPlayers)
 	-- load data
 	self.units = {}
 	self.units.count = 0
@@ -41,6 +41,9 @@ function auctionStateObj:initialize(version)
 		self.units[self.units.count] = 
 			version[self.units.count]
 	end
+	
+	-- load bids
+	self:readBids(bidFile, numPlayers)
 	
 	local totalBids = 0
 	for player_i = 1, self.players.count do
@@ -62,6 +65,38 @@ function auctionStateObj:initialize(version)
 	end
 	
 	self.prefViolationFactor = self.players.count/totalBids
+end
+
+function auctionStateObj:readBids(bidFile, numPlayers)
+	numPlayers = numPlayers or self.players.count -- allow simulated auctions with incomplete bids
+
+	io.input(bidFile)
+	self.bids = {}
+	for player_i = 1, self.players.count do
+		self.bids[player_i] = {}
+	end
+		
+	local playerWeight = {} 
+	if numPlayers < self.players.count then
+		for player_i = numPlayers+1, self.players.count do
+			print(string.format("Randomizing player %d", player_i))
+			playerWeight[player_i] = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
+		end
+	end
+	
+	local bidTotal = {}
+	for unit_i = 1, self.units.count do
+		bidTotal[unit_i] = 0
+		for player_i = 1, self.players.count do
+			if player_i <= numPlayers then
+				self.bids[player_i][unit_i] = io.read("*number")
+				bidTotal[unit_i] = bidTotal[unit_i] + self.bids[player_i][unit_i]
+			else
+				self.bids[player_i][unit_i] = (bidTotal[unit_i]/numPlayers)
+					* playerWeight[player_i] * (1 + 0.6*(math.random()-0.5))
+			end
+		end
+	end
 end
 
 -- can make unbalanced teams
@@ -699,8 +734,7 @@ function auctionStateObj:finesseTeams(threshold, printV)
 	return false
 end
 
-function auctionStateObj:standardProcess(version)		
-	self:initialize(version)
+function auctionStateObj:standardProcess()
 	self:printBids()
 	self:initialAssign()
 	
@@ -761,46 +795,29 @@ function auctionStateObj:standardProcess(version)
 end
 
 local FE7auction2 = auctionStateObj:new()
-FE7auction2.players = {"P1", "P2", "P3", "P4", "P5"}
+FE7auction2.players = {"Wargrave", "Athena", "P3", "P4", "P5"}
 FE7auction2.players.count = 5
 
 FE7auction2.bids = {
-{5.07, 3.65, 4.28, 6.32, 9.88, 
-3.02, 3.95, 3.02, 7.0, 1.2, 
-9.07, 6.07, 11.38, 1.58, 8.3, 
-8.2, 2.27, 2.2, 6.82, 8.32, 
-2.9, 7.78, 7.0, 1.18, 2.88, 
-11.38, 5.7, 2.45, 0.82, 7, 
-1.13, 4.42, 1.2, 2.95, 0},
-{},
+	{3.10, 4.20, 1.90, 4.10, 11.80,
+	1.00, 3.40, 3.20, 6.70, 1.10,
+	5.90, 4.60, 12.90, 1.60, 8.20,
+	8.10, 0.80, 2.10, 5.10, 4.70,
+	2.00, 8.60, 6.20, 1.00, 4.20,
+	7.30, 2.70, 1.50, 0.50, 3.30,
+	0.30, 0.30, 0.00, 1.00, 0.20},
+	{3.00, 3.50, 3.00, 5.00, 14.00,
+	1.00, 4.00, 2.00, 10.00, 1.00,
+	8.00, 5.00, 16.00, 0.50, 8.40,
+	8.30, 0.00, 3.00, 6.00, 7.00,
+	1.00, 8.00, 4.00, 0.50, 4.20,
+	8.00, 3.00, 2.00, 2.00, 5.00,
+	0.50, 0.00, 0.50, 3.00, 0.50},
 {},
 {},
 {}
 }
 
-for player_i = 2, 5 do
-	if not FE7auction2.bids[player_i][1] then
-		local playerWeight = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
-		for unit_i = 1, 35 do
-			FE7auction2.bids[player_i][unit_i] = 
-				FE7auction2.bids[1][unit_i] 
-					--* playerWeight * (1 + 0.6*(math.random()-0.5))
-		end
-	end
-end
-
 print("FE7auction2")
-FE7auction2:standardProcess(unitData.sevenHNM)
-
-local FE7auction1 = auctionStateObj:new()
-FE7auction1.players = {"Wargrave", "Carmine", "Horace", "Baldrick"}
-FE7auction1.players.count = 4
-
-FE7auction1.bids = {
-{3.2, 3.5, 3.5, 3.5, 9.8, 1.7, 2.3, 1.9, 1.8, 5.5, 4.5, 12.5, 1.4, 9.2, 8.8, 1.6, 2.5, 3.3, 2.7, 2.2, 6.5, 1.7, 2, 5.2, 2.8, 1.8, 3.1, 3.1, 1.5, 0.9, 1.5, 2.6},
-{3, 2, 4, 4.5, 12, 0.5, 6.5, 3, 1, 12, 5, 13, 0.5, 8, 8, 0.5, 2, 9, 12, 1, 7, 1, 5.5, 10.5, 7.5, 3.5, 4, 7, 1, 0, 2.25, 4},
-{4.1, 4.1, 5.1, 5.1, 10.1, 3.1, 3.1, 3.1, 0, 8.1, 5.1, 0, 2.1, 6.1, 6.1, 3.1, 2.1, 6.1, 7.1, 2.1, 10.1, 0, 1.1, 10.1, 5.1, 2.1, 0.1, 2.1, 0.1, 0.2, 1.1, 1.1},
-{8, 5, 6, 10, 12, 3, 1, 1, 1, 8, 9, 11, 4, 10, 10, 2, 1, 4, 4, 5, 7, 2, 6, 14, 4, 4, 3, 7, 2, 15, 2, 2}}
-
---print("FE7auction1")
---FE7auction1:standardProcess()
+FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.txt", 2)
+FE7auction2:standardProcess()
