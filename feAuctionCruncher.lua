@@ -79,8 +79,9 @@ function auctionStateObj:readBids(bidFile, numPlayers)
 	local playerWeight = {} 
 	if numPlayers < self.players.count then
 		for player_i = numPlayers+1, self.players.count do
-			print(string.format("Randomizing player %d", player_i))
-			playerWeight[player_i] = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
+			--playerWeight[player_i] = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
+			--print(string.format("Randomizing player %d, x%4.2f", player_i, playerWeight[player_i]))
+			print(string.format("Creating player %d", player_i))
 		end
 	end
 	
@@ -93,12 +94,51 @@ function auctionStateObj:readBids(bidFile, numPlayers)
 				bidTotal[unit_i] = bidTotal[unit_i] + self.bids[player_i][unit_i]
 			else
 				self.bids[player_i][unit_i] = (bidTotal[unit_i]/numPlayers)
-					* playerWeight[player_i] * (1 + 0.6*(math.random()-0.5))
+				--	* playerWeight[player_i] * (1 + 0.6*(math.random()-0.5))
 			end
 		end
 	end
 	
 	io.input():close()
+end
+
+-- if unit A is on average rated above unit B by X turns, 
+-- but player 1 deviates from this by at least threshold, print it
+function auctionStateObj:findLargeBidComparisonDeviations(threshold)
+	local averageBid = {}
+	local function avgBidDif(unit_i, unit_j)
+		return averageBid[unit_i] - averageBid[unit_j]
+	end
+	
+	for unit_i = 1, self.units.count do
+		averageBid[unit_i] = 0
+		for player_i = 1, self.players.count do
+			averageBid[unit_i] = averageBid[unit_i] + self.bids[player_i][unit_i]
+		end
+		averageBid[unit_i] = averageBid[unit_i]/self.players.count
+	end
+	
+	local deviationCount = 0
+	for player_i = 1, self.players.count do
+		for unit_i = 1, self.units.count do
+			for unit_j = unit_i+1, self.units.count do
+				local deviation = (self.bids[player_i][unit_i] - self.bids[player_i][unit_j]) 
+					- avgBidDif(unit_i, unit_j)
+				
+				if math.abs(deviation) >= threshold then
+					deviationCount = deviationCount + 1
+					print()
+					print(string.format("%02d preference deviation noted, comparing: %-10.10s %-10.10s", 
+						deviationCount, self.units[unit_i][name_I], self.units[unit_j][name_I]))
+					print(string.format("Average: %05.2f  %-10.10s: %05.2f  Deviation: %05.2f", 
+						avgBidDif(unit_i, unit_j), self.players[player_i], 
+						(self.bids[player_i][unit_i] - self.bids[player_i][unit_j]),
+						deviation))
+				end
+			end
+		end
+		emu.frameadvance() -- prevent unresponsiveness
+	end
 end
 
 -- can make unbalanced teams
@@ -797,29 +837,10 @@ function auctionStateObj:standardProcess()
 end
 
 local FE7auction2 = auctionStateObj:new()
-FE7auction2.players = {"Wargrave", "Athena", "P3", "P4", "P5"}
+FE7auction2.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}
 FE7auction2.players.count = 5
 
-FE7auction2.bids = {
-	{3.10, 4.20, 1.90, 4.10, 11.80,
-	1.00, 3.40, 3.20, 6.70, 1.10,
-	5.90, 4.60, 12.90, 1.60, 8.20,
-	8.10, 0.80, 2.10, 5.10, 4.70,
-	2.00, 8.60, 6.20, 1.00, 4.20,
-	7.30, 2.70, 1.50, 0.50, 3.30,
-	0.30, 0.30, 0.00, 1.00, 0.20},
-	{3.00, 3.50, 3.00, 5.00, 14.00,
-	1.00, 4.00, 2.00, 10.00, 1.00,
-	8.00, 5.00, 16.00, 0.50, 8.40,
-	8.30, 0.00, 3.00, 6.00, 7.00,
-	1.00, 8.00, 4.00, 0.50, 4.20,
-	8.00, 3.00, 2.00, 2.00, 5.00,
-	0.50, 0.00, 0.50, 3.00, 0.50},
-{},
-{},
-{}
-}
-
 print("FE7auction2")
-FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 2)
-FE7auction2:standardProcess()
+FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 4)
+FE7auction2:findLargeBidComparisonDeviations(5)
+--FE7auction2:standardProcess()
