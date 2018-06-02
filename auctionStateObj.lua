@@ -12,15 +12,15 @@ function P:new()
 	self.__index = self
 		
 	o.players = {} -- strings
-	o.players.count = 0	
-	o.units = {} -- names, chapter, promo
+	o.players.count = 0
+	o.units = {} -- names, chapter, promo_item
 	o.units.count = 0
 	o.promoItemTotals = {}
 	
 	o.bids = {} -- PxU array of numbers
-	o.assignedTo = {} -- PxU array of bools. 
+	o.assignedTo = {} -- PxU array of bools.
 	-- units can temporarily be assigned to more than one player if ties exist
-	o.wasAssignedTo = {} -- PxU array of bools. 
+	o.wasAssignedTo = {} -- PxU array of bools.
 	-- don't reassign to past assignment, avoid cycles with ties
 	o.prefViolationFactor = 0 -- compute in initialize, for averagePreferenceViolation()
 	

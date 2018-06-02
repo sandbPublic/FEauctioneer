@@ -1,5 +1,3 @@
-require("auctionStateObj")
-
 function auctionStateObj:printBids()
 	print("")
 	print("-BIDS-")
@@ -87,4 +85,55 @@ function auctionStateObj:findLargeBidComparisonDeviations(threshold)
 		end
 		emu.frameadvance() -- prevent unresponsiveness
 	end
+end
+
+-- also print handicaps and satisfaction
+function auctionStateObj:printTeamValueMatrix()
+	vMatrix = self:teamValueMatrix()
+	
+	print()
+	print("Team Value Matrix")
+	local str = string.format("%-10.10s ", "")
+	for player_i = 1, self.players.count do
+		str = str .. string.format("%-10.10s ", self.players[player_i])
+	end
+	str = str .. "spiteValue"
+	print(str)
+	
+	for player_i = 1, self.players.count do
+		str = string.format("%-10.10s ", self.players[player_i])
+		for player_j = 1, self.players.count do
+			str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
+		end
+		str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
+		print(str)
+	end
+	
+	local handicaps = {}
+	str = "handicaps  "
+	for player_i = 1, self.players.count do
+		handicaps[player_i] = self:totalHandicap(player_i)
+		str = str .. string.format("%6.2f     ", handicaps[player_i])
+	end
+	print(str)
+	
+	print()
+	str = " spiteV    "
+	for player_i = 1, self.players.count do
+		str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i], player_i))
+	end
+	print(str)
+	
+	str = "-spiteH    "
+	for player_i = 1, self.players.count do
+		str = str .. string.format("%6.2f     ", spiteValue(handicaps, player_i))
+	end
+	print(str)
+	
+	local satMatrix = self:satMatrix()
+	str = "=sat.      "
+	for player_i = 1, self.players.count do
+		str = str .. string.format("%6.2f     ", satMatrix[player_i])
+	end
+	print(str)
 end

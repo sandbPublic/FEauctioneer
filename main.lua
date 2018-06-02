@@ -27,11 +27,11 @@ function auctionStateObj:standardProcess(regAssign)
 		
 		while (self:existOverfilledTeam() or self:tieExists()) do
 			while self:tieExists() do
-				self:resolveTie(true)
+				self:resolveTie(false)
 			end
 			
 			if self:existOverfilledTeam() then
-				self:reassignFrom(true, true)
+				self:reassignFrom(true, false)
 			end
 		end
 		
@@ -40,7 +40,7 @@ function auctionStateObj:standardProcess(regAssign)
 		end
 	end
 
-	self:printTeams()
+	--self:printTeams()
 	
 	print()
 	print(string.format("average preference violation: %8.6f",
@@ -52,7 +52,7 @@ function auctionStateObj:standardProcess(regAssign)
 	print(string.format("average preference violation: %8.6f",
 		self:averagePreferenceViolation()*100) .. "%")
 	
-	self:printTeams()
+	--self:printTeams()
 	
 	self:chapterGaps()
 	self:promoClasses()
@@ -65,7 +65,7 @@ function auctionStateObj:standardProcess(regAssign)
 	
 	print()
 	print("--Final teams--")
-	--self:printTeams()
+	self:printTeams()
 	
 	print()
 	print("END")
@@ -79,11 +79,14 @@ print("FE7auction2")
 FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
 FE7auction2:standardProcess()
 
+FE7auction2:printTeamValueMatrix()
+
 local FE7auction2r = auctionStateObj:new()
 FE7auction2r.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}
 FE7auction2r.players.count = 5
 
 print()
-print("FE7auction2 regAssign")
-FE7auction2r:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
-FE7auction2r:standardProcess(true)
+--print("FE7auction2 regAssign")
+--FE7auction2r:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
+--FE7auction2r:standardProcess(true)
+

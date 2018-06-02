@@ -1,5 +1,3 @@
-require("auctionStateObj")
-
 -- assigns unit 1 to player 1, unit 2 to player 2, etc, looping
 function auctionStateObj:regularAssign()
 	for unit_i = 1, self.units.count do
@@ -101,6 +99,8 @@ function auctionStateObj:findOwner(unit_i)
 			return player_i
 		end
 	end
+	
+	print("no owner")
 	return 0
 end
 
