@@ -1,17 +1,21 @@
+-- format a string into 10 chars with an extra space
+function tenChar(str)
+	return string.format("%-10.10s ", str)
+end
+
 function auctionStateObj:printBids()
-	print("")
+	print()
 	print("-BIDS-")
-	local str = "           "
+	local str = tenChar("")
 	for player_i = 1, self.players.count do
-		str = str .. string.format("%-10.10s ", self.players[player_i])
+		str = str .. tenChar(self.players[player_i])
 	end
 	print(str)
 	
 	for unit_i = 1, self.units.count do
-		str = string.format("%-10.10s ", self.units[unit_i][name_I])
+		str = tenChar(self.units[unit_i][name_I])
 		for player_i = 1, self.players.count do
-			str = str ..  string.format("%-10.10s ", 
-				string.format("%05.2f", self.bids[player_i][unit_i]))
+			str = str ..  tenChar(string.format("%05.2f", self.bids[player_i][unit_i]))
 		end
 		
 		print(str)
@@ -19,26 +23,16 @@ function auctionStateObj:printBids()
 end
 
 function auctionStateObj:printTeams()
-	local smallestHCtotal = 999
 	for player_i = 1, self.players.count do
-		if self:totalHandicap(player_i) < smallestHCtotal then
-			smallestHCtotal = self:totalHandicap(player_i)
-		end
-	end
-	
-	for player_i = 1, self.players.count do
-		print("")
-		print(string.format("%-10.10s price | bid", self.players[player_i]))
+		print()
+		print(self.players[player_i])
 		
 		for unit_i = 1, self.units.count do
-			if self.assignedTo[player_i][unit_i] then
-				local str = string.format("%-10.10s %05.2f | %05.2f", 
-					self.units[unit_i][name_I], self:handicapPrice(unit_i), self.bids[player_i][unit_i])			
-				print(str)
+			if self.owner[unit_i] == player_i then		
+				print(tenChar(self.units[unit_i][name_I]) .. 
+					string.format("%05.2f", self.bids[player_i][unit_i]))
 			end
 		end
-		print(string.format("TOTAL      %05.2f, relative hc %05.2f", 
-			self:totalHandicap(player_i), self:totalHandicap(player_i)-smallestHCtotal))		
 	end
 end
 
@@ -92,16 +86,16 @@ function auctionStateObj:printTeamValueMatrix()
 	vMatrix = self:teamValueMatrix()
 	
 	print()
-	print("Team Value Matrix")
-	local str = string.format("%-10.10s ", "")
+	print("Raw Team Value Matrix")
+	local str = tenChar("")
 	for player_i = 1, self.players.count do
-		str = str .. string.format("%-10.10s ", self.players[player_i])
+		str = str .. tenChar(self.players[player_i])
 	end
-	str = str .. "spiteValue"
+	str = str .. "spite value"
 	print(str)
 	
 	for player_i = 1, self.players.count do
-		str = string.format("%-10.10s ", self.players[player_i])
+		str = tenChar(self.players[player_i])
 		for player_j = 1, self.players.count do
 			str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
 		end
@@ -109,31 +103,32 @@ function auctionStateObj:printTeamValueMatrix()
 		print(str)
 	end
 	
-	local handicaps = {}
+	local paretoPrices = self:paretoPrices()
+	print()
 	str = "handicaps  "
 	for player_i = 1, self.players.count do
-		handicaps[player_i] = self:totalHandicap(player_i)
-		str = str .. string.format("%6.2f     ", handicaps[player_i])
+		str = str .. string.format("%6.2f     ", paretoPrices[player_i])
 	end
 	print(str)
 	
+	-- now subtract relevant prices and print again
 	print()
-	str = " spiteV    "
+	print("Adjusted Team Value Matrix")
+	str = tenChar("")
 	for player_i = 1, self.players.count do
-		str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i], player_i))
+		str = str .. tenChar(self.players[player_i])
 	end
+	str = str .. "satisfaction"
 	print(str)
 	
-	str = "-spiteH    "
 	for player_i = 1, self.players.count do
-		str = str .. string.format("%6.2f     ", spiteValue(handicaps, player_i))
+		str = tenChar(self.players[player_i])
+		for player_j = 1, self.players.count do
+			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] - paretoPrices[player_j]
+		
+			str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
+		end
+		str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
+		print(str)
 	end
-	print(str)
-	
-	local satMatrix = self:satMatrix()
-	str = "=sat.      "
-	for player_i = 1, self.players.count do
-		str = str .. string.format("%6.2f     ", satMatrix[player_i])
-	end
-	print(str)
 end

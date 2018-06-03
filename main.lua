@@ -8,64 +8,28 @@ function auctionStateObj:standardProcess(regAssign)
 	--self:printBids()
 	
 	if not regAssign then
-		self:initialAssign()
+		self:quickAssign()
 	else
 		self:regularAssign()
 	end
 	
 	print()
-	print("Unbalanced teams")
+	print("Initial unoptimized teams")
 	
-	--self:printTeams()
+	self:printTeams()
 
 	print()
-	print("Balancing")
-	
-	while (self:existUnderfilledTeam() 
-		or self:existOverfilledTeam() 
-		or self:tieExists()) do
-		
-		while (self:existOverfilledTeam() or self:tieExists()) do
-			while self:tieExists() do
-				self:resolveTie(false)
-			end
-			
-			if self:existOverfilledTeam() then
-				self:reassignFrom(true, false)
-			end
-		end
-		
-		if self:existUnderfilledTeam() then
-			self:reassignFrom(false, true)
-		end
-	end
-
-	--self:printTeams()
-	
-	print()
-	print(string.format("average preference violation: %8.6f",
-		self:averagePreferenceViolation()*100) .. "%")
-	
-	print("cleaning up preference violations")	
+	print(string.format("current score: %-6.2f", self:allocationScore()))	
+	print("optimizing")	
 	while(self:cleanupPrefViolation(true)) do end
 	
-	print(string.format("average preference violation: %8.6f",
-		self:averagePreferenceViolation()*100) .. "%")
-	
-	--self:printTeams()
-	
-	self:chapterGaps()
-	self:promoClasses()
-	
-	print()
-	print("Attempting to balance chapter gaps and promotion classes")	
-	while self:finesseTeams(40, false) do 
-		emu.frameadvance() -- prevent unresponsiveness
-	end
-	
+	--self:chapterGaps()
+	--self:promoClasses()
+		
 	print()
 	print("--Final teams--")
 	self:printTeams()
+	self:printTeamValueMatrix()
 	
 	print()
 	print("END")
@@ -78,8 +42,6 @@ FE7auction2.players.count = 5
 print("FE7auction2")
 FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
 FE7auction2:standardProcess()
-
-FE7auction2:printTeamValueMatrix()
 
 local FE7auction2r = auctionStateObj:new()
 FE7auction2r.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}

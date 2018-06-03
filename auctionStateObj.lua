@@ -6,6 +6,7 @@ name_I = 1
 chapter_I = 2
 promo_I = 3
 
+--todo store vMatrix etc, only recompute when swaps occur?
 function P:new()
 	local o = {}
 	setmetatable(o, self)
@@ -18,11 +19,7 @@ function P:new()
 	o.promoItemTotals = {}
 	
 	o.bids = {} -- PxU array of numbers
-	o.assignedTo = {} -- PxU array of bools.
-	-- units can temporarily be assigned to more than one player if ties exist
-	o.wasAssignedTo = {} -- PxU array of bools.
-	-- don't reassign to past assignment, avoid cycles with ties
-	o.prefViolationFactor = 0 -- compute in initialize, for averagePreferenceViolation()
+	o.owner = {} -- U array of player ids.
 	
 	return o
 end
@@ -41,17 +38,6 @@ function P:initialize(version, bidFile, numPlayers)
 	-- load bids
 	self:readBids(bidFile, numPlayers)
 	
-	local totalBids = 0
-	for player_i = 1, self.players.count do
-		self.assignedTo[player_i] = {}
-		self.wasAssignedTo[player_i] = {}
-		for unit_i = 1, self.units.count do
-			totalBids = totalBids + self.bids[player_i][unit_i]
-			self.assignedTo[player_i][unit_i] = false
-			self.wasAssignedTo[player_i][unit_i] = false
-		end
-	end
-	
 	for promoItem_i = 0, 8 do
 		self.promoItemTotals[promoItem_i] = 0
 	end
@@ -59,8 +45,6 @@ function P:initialize(version, bidFile, numPlayers)
 		self.promoItemTotals[self.units[unit_i][promo_I]] = 
 			self.promoItemTotals[self.units[unit_i][promo_I]] + 1
 	end
-	
-	self.prefViolationFactor = self.players.count/totalBids
 end
 
 function P:readBids(bidFile, numPlayers)
@@ -96,25 +80,6 @@ function P:readBids(bidFile, numPlayers)
 	end
 	
 	io.input():close()
-end
-
--- scale to average bid
--- preference violation is a measure of how much the owner's bid differs from the highest bid.
--- with no other considerations, the unit should go to highest bidder.
--- however, team balance and chapter gap smoothing provide an incentive to violate that principle.
-function auctionStateObj:averagePreferenceViolation()
-	local violations = 0
-	for unit_i = 1, self.units.count do
-		local highestBid = 0
-		for player_i = 1, self.players.count do
-			if highestBid < self.bids[player_i][unit_i] then
-				highestBid = self.bids[player_i][unit_i]
-			end
-		end
-		violations = violations + highestBid - self.bids[self:findOwner(unit_i)][unit_i]
-	end
-	
-	return violations*self.prefViolationFactor
 end
 
 -- takes 2D array, eg first dimension players, second dimension value
@@ -157,7 +122,7 @@ function auctionStateObj:chapterGaps(printV)
 		local gap = 0
 		local normalized = 0
 		for unit_i = 1, self.units.count do
-			if self.assignedTo[player_i][unit_i] then
+			if self.owner[unit_i] == player_i then
 			
 				gap = self.units[unit_i][chapter_I] - prevChapter
 				normalized = gap/totalGap
@@ -214,23 +179,25 @@ function auctionStateObj:promoClasses(printV)
 		print()
 		print("Promo classes")
 	end
+	
 	for player_i = 1, self.players.count do
-		if printV then 
-			print() 
-			print(self.players[player_i]) 
-		end
-		
 		ret[player_i] = {}
 		count[player_i] = {}
 		for promoItem_i = 0, 8 do
 			count[player_i][promoItem_i] = 0
 		end
-		
-		for unit_i = 1, self.units.count do
-			if self.assignedTo[player_i][unit_i] then
-				count[player_i][self.units[unit_i][promo_I]] = 
-					count[player_i][self.units[unit_i][promo_I]] + 1
-			end	
+	end
+	
+	-- for each unit, increment its owner's promo item count
+	for unit_i = 1, self.units.count do
+		count[self.owner[unit_i]][self.units[unit_i][promo_I]] = 
+			count[self.owner[unit_i]][self.units[unit_i][promo_I]] + 1
+	end
+	
+	for player_i = 1, self.players.count do
+		if printV then 
+			print() 
+			print(self.players[player_i]) 
 		end
 		
 		local sumOfSq = 0
