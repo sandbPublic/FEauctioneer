@@ -1,13 +1,4 @@
--- assigns unit 1 to player 1, unit 2 to player 2, etc, looping
-function auctionStateObj:regularAssign()
-	for unit_i = 1, self.units.count do
-		player_i = unit_i % self.players.count
-		if player_i == 0 then player_i = self.players.count end
-		self.owner[unit_i] = player_i
-	end
-end
-
--- reduces number of swaps by being closer to optimal than regularAssign
+-- assign unit to highest bidder that doesn't have a full team yet
 function auctionStateObj:quickAssign()
 	local maxTeamSize = self.units.count/self.players.count
 	local teamSize = {}
@@ -31,16 +22,16 @@ end
 
 -- returns true if a swap was made
 -- otherwise returns false
-function auctionStateObj:cleanupPrefViolation(printV)	
+function auctionStateObj:improveAllocation(printV)	
 	local currentValue = self:allocationScore()
 	
 	for unit_i = 1, self.units.count do
 		for unit_j = unit_i+1, self.units.count do
-			self.owner[unit_i], self.owner[unit_j] = self.owner[unit_i], self.owner[unit_j]
+			self.owner[unit_i], self.owner[unit_j] = self.owner[unit_j], self.owner[unit_i]
 			
 			if self:allocationScore() > currentValue then
 				if printV then
-					print(string.format("old score: %-6.2f", currentValue))
+					print()
 				
 					-- use name of owner before swap
 					print(string.format("Swapping: %-10.10s %-10.10s <-> %-10.10s %-10.10s",
@@ -52,10 +43,13 @@ function auctionStateObj:cleanupPrefViolation(printV)
 				
 				return true
 			end
+			
+			self.owner[unit_i], self.owner[unit_j] = self.owner[unit_j], self.owner[unit_i]
 		end
 	end
 	
 	if printV then
+		print()
 		print("couldn't improve allocation")
 	end
 	return false

@@ -4,24 +4,22 @@ require("output")
 require("allocation")
 require("unitData")
 
-function auctionStateObj:standardProcess(regAssign)
+function auctionStateObj:standardProcess()
 	--self:printBids()
 	
-	if not regAssign then
-		self:quickAssign()
-	else
-		self:regularAssign()
-	end
+	self:quickAssign()
 	
 	print()
 	print("Initial unoptimized teams")
 	
-	self:printTeams()
+	--self:printTeams()
 
 	print()
 	print(string.format("current score: %-6.2f", self:allocationScore()))	
 	print("optimizing")	
-	while(self:cleanupPrefViolation(true)) do end
+	while(self:improveAllocation()) do 
+		emu.frameadvance()
+	end
 	
 	--self:chapterGaps()
 	--self:promoClasses()
@@ -42,13 +40,3 @@ FE7auction2.players.count = 5
 print("FE7auction2")
 FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
 FE7auction2:standardProcess()
-
-local FE7auction2r = auctionStateObj:new()
-FE7auction2r.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}
-FE7auction2r.players.count = 5
-
-print()
---print("FE7auction2 regAssign")
---FE7auction2r:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
---FE7auction2r:standardProcess(true)
-

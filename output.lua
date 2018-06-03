@@ -25,12 +25,12 @@ end
 function auctionStateObj:printTeams()
 	for player_i = 1, self.players.count do
 		print()
-		print(self.players[player_i])
+		print(tenChar(self.players[player_i]) .. "bids")
 		
 		for unit_i = 1, self.units.count do
 			if self.owner[unit_i] == player_i then		
 				print(tenChar(self.units[unit_i][name_I]) .. 
-					string.format("%05.2f", self.bids[player_i][unit_i]))
+					string.format("%5.2f", self.bids[player_i][unit_i]))
 			end
 		end
 	end
@@ -83,52 +83,58 @@ end
 
 -- also print handicaps and satisfaction
 function auctionStateObj:printTeamValueMatrix()
-	vMatrix = self:teamValueMatrix()
+	local vMatrix = self:teamValueMatrix()
 	
-	print()
-	print("Raw Team Value Matrix")
-	local str = tenChar("")
-	for player_i = 1, self.players.count do
-		str = str .. tenChar(self.players[player_i])
-	end
-	str = str .. "spite value"
-	print(str)
-	
-	for player_i = 1, self.players.count do
-		str = tenChar(self.players[player_i])
-		for player_j = 1, self.players.count do
-			str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
+	local function printMatrix(header)
+		print()
+		print(header)
+		local str = tenChar("")
+		for player_i = 1, self.players.count do
+			str = str .. tenChar(self.players[player_i])
 		end
-		str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
+		str = str .. "satisfaction"
 		print(str)
+		
+		for player_i = 1, self.players.count do
+			str = tenChar(self.players[player_i])
+			for player_j = 1, self.players.count do
+				str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
+			end
+			str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
+			print(str)
+		end
 	end
-	
+
+	printMatrix("Raw Team Value Matrix")
+		
 	local paretoPrices = self:paretoPrices()
 	print()
-	str = "handicaps  "
+	local str = "HANDICAPS  "
 	for player_i = 1, self.players.count do
 		str = str .. string.format("%6.2f     ", paretoPrices[player_i])
 	end
 	print(str)
 	
 	-- now subtract relevant prices and print again
-	print()
-	print("Adjusted Team Value Matrix")
-	str = tenChar("")
 	for player_i = 1, self.players.count do
-		str = str .. tenChar(self.players[player_i])
-	end
-	str = str .. "satisfaction"
-	print(str)
-	
-	for player_i = 1, self.players.count do
-		str = tenChar(self.players[player_i])
 		for player_j = 1, self.players.count do
 			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] - paretoPrices[player_j]
-		
-			str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
 		end
-		str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
-		print(str)
 	end
+	printMatrix("Handicapped Team Value Matrix")
+	
+	-- subtract max from each row and print again
+	for player_i = 1, self.players.count do
+		local maxValue = -999
+		for player_j = 1, self.players.count do
+			if maxValue < vMatrix[player_i][player_j] then
+				maxValue = vMatrix[player_i][player_j]
+			end
+		end
+		
+		for player_j = 1, self.players.count do
+			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] - maxValue
+		end
+	end
+	printMatrix("Expected Victory Margin Matrix")
 end
