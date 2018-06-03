@@ -20,6 +20,7 @@ function P:new()
 	
 	o.bids = {} -- PxU array of numbers
 	o.owner = {} -- U array of player ids.
+	o.teamSize = 0
 	
 	return o
 end
@@ -45,6 +46,8 @@ function P:initialize(version, bidFile, numPlayers)
 		self.promoItemTotals[self.units[unit_i][promo_I]] = 
 			self.promoItemTotals[self.units[unit_i][promo_I]] + 1
 	end
+	
+	self.teamSize = self.units.count/self.players.count
 end
 
 function P:readBids(bidFile, numPlayers)
@@ -82,6 +85,25 @@ function P:readBids(bidFile, numPlayers)
 	io.input():close()
 end
 
+-- PxTeamsize array of unit_ids
+function P:teams()
+	local teams = {}
+	
+	for player_i = 1, self.players.count do
+		teams[player_i] = {}
+		local teamNextSlot = 1
+		
+		for unit_i = 1, self.units.count do
+			if self.owner[unit_i] == player_i then	
+				teams[player_i][teamNextSlot] = unit_i
+				teamNextSlot = teamNextSlot + 1
+			end
+		end
+	end
+	
+	return teams
+end
+
 -- takes 2D array, eg first dimension players, second dimension value
 function sumOfSquares(array)
 	local sum = 0
@@ -102,7 +124,7 @@ end
 -- gaps between drafted units appearing, player.count X (teamSize + 1) array
 -- values normalized
 -- assumes units are sorted by chapter join time
-function auctionStateObj:chapterGaps(printV)
+function P:chapterGaps(printV)
 	local ret = {}
 	local totalGap = self.units[self.units.count][chapter_I] - self.units[1][chapter_I]
 	
@@ -171,7 +193,7 @@ promoStrings[0] = "None "
 
 -- number of each promo type, numOf_player X 8 array
 -- values normalized
-function auctionStateObj:promoClasses(printV)
+function P:promoClasses(printV)
 	local ret = {} -- normalized values
 	local count = {} -- raw counts
 	

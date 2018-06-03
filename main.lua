@@ -12,13 +12,21 @@ function auctionStateObj:standardProcess()
 	print()
 	print("Initial unoptimized teams")
 	
-	--self:printTeams()
+	self:printTeams()
 
 	print()
 	print(string.format("current score: %-6.2f", self:allocationScore()))	
-	print("optimizing")	
-	while(self:improveAllocation()) do 
+	print("optimizing swaps")	
+	while(self:improveAllocationSwaps()) do 
 		emu.frameadvance()
+	end
+	
+	print(string.format("current score: %-6.2f", self:allocationScore()))
+	
+	print("optimizing permutations")	
+	while(self:improveAllocationPermute(true)) do 
+		emu.frameadvance()
+		print("permute pass")
 	end
 	
 	--self:chapterGaps()
