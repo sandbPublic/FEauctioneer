@@ -188,8 +188,8 @@ function P:chapterGaps(printV)
 end
 
 -- promo items
-local promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC"}
-promoStrings[0] = "None "
+P.promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC"}
+P.promoStrings[0] = "None "
 
 -- number of each promo type, numOf_player X 8 array
 -- values normalized
@@ -235,7 +235,7 @@ function P:promoClasses(printV)
 			
 			if printV and count[player_i][promoItem_i] > 0 then
 				print(string.format("%s %d/%d=%5.3f  %5.3f", 
-					promoStrings[promoItem_i], count[player_i][promoItem_i], 
+					P.promoStrings[promoItem_i], count[player_i][promoItem_i], 
 					self.promoItemTotals[promoItem_i], normalized, square))
 			end
 		end

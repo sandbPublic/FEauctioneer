@@ -13,7 +13,7 @@ function spiteValue(array, i)
 	return array[i] - spite/(j-2) -- j-2 == #opponents
 end
 
--- the vMatrix shows how player a values player j's team
+-- the vMatrix shows how player i values player j's team for all i,j
 function auctionStateObj:teamValueMatrix()
 	local vMatrix = {}
 	for player_i = 1, self.players.count do
@@ -36,46 +36,15 @@ function auctionStateObj:teamValueMatrix()
 	return vMatrix
 end
 
--- satisfaction matrix, using teamValueMatrix and handicaps
-function auctionStateObj:satMatrix()
-	vMatrix = self:teamValueMatrix()
-	
-	local handicaps = {}
-	for player_i = 1, self.players.count do
-		handicaps[player_i] = self:totalHandicap(player_i)
-	end
-	
-	local satMatrix = {}
-	for player_i = 1, self.players.count do
-		satMatrix[player_i] = 
-			spiteValue(vMatrix[player_i],player_i) - spiteValue(handicaps, player_i)
-	end
-	
-	return satMatrix
+-- reduce value of teams with promo item redundancies and unbalanced join times
+function auctionStateObj:adjustedTeamValueMatrix()
 end
 
--- for any assignment, a player A's satisfaction will be:
--- A's valuation of A's team - A's price + avg(Opp's price - A's value of Opp's team)
--- setting these equal for all players and arbitrarily setting one price to 0
--- (handicaps are relative) yield a system of N-1 equations and N-1 unknowns
---
--- solving this will produce prices that equalizes sat (and maximize minimum)
--- this level of sat is the score for that assignment
--- then simply find the assignment with the highest sat 
-
--- let:
--- # players = n+1
--- a = A's team
--- V_Ax = A's valuation of X's team
--- P_A = the price A pays
--- Comp.f(A) = competitive version of f: f(A) - avg(f(i))|{i~=A}
--- S_A = A's satisfaction = Comp.V_A - Comp.P_A
--- changing price does not change sum(S)
--- pareto optimum when S_A = S_X for all X
--- wlg let P_A = 0 and S_A = S_X. then
--- P_X = (Comp.V_X - Comp.V_A)n/(n+1)
-function auctionStateObj:paretoPrices()	
-	local vMatrix = self:teamValueMatrix()
+-- finds prices that produce equalized satisfaction
+-- A's satisfaction equals Handicapped Team Value - average opponent HTV
+-- (from A's subjective perspective)
+function auctionStateObj:paretoPrices(vMatrix)	
+	vMatrix = vMatrix or self:teamValueMatrix()
 	
 	-- select A | Comp.V_A is minimal to automatically generate positive prices
 	local spiteValues = {}
@@ -100,8 +69,8 @@ function auctionStateObj:paretoPrices()
 end
 
 -- satisfaction is proportional to net spiteValue
-function auctionStateObj:allocationScore()
-	local vMatrix = self:teamValueMatrix()
+function auctionStateObj:allocationScore(vMatrix)
+	vMatrix = vMatrix or self:teamValueMatrix()
 	
 	local netSpiteValue = 0	
 	for player_i = 1, self.players.count do

@@ -27,13 +27,14 @@ function auctionStateObj:printTeams()
 
 	for player_i = 1, self.players.count do
 		print()
-		print(tenChar(self.players[player_i]) .. "bids")
+		print(tenChar(self.players[player_i]) .. "bids   item")
 		
 		for teamMember_i = 1, self.teamSize do
 			local unit_i = teams[player_i][teamMember_i]
 		
 			print(tenChar(self.units[unit_i][name_I]) .. 
-				string.format("%5.2f", self.bids[player_i][unit_i]))
+				string.format("%5.2f  ", self.bids[player_i][unit_i]) ..
+				self.promoStrings[self.units[unit_i][promo_I]])
 		end
 	end
 end

@@ -105,9 +105,6 @@ function permgen (a, n)
 end
 print("permutations")
 permgen({1,2,3,4,5}, 5)
-for perm_i = 1, perms.count do
-	--print(perms[perm_i])
-end
 
 -- todo allow for variable number of players
 function auctionStateObj:improveAllocationPermute(printV)	

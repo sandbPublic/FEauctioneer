@@ -24,10 +24,10 @@ function auctionStateObj:standardProcess()
 	print(string.format("current score: %-6.2f", self:allocationScore()))
 	
 	print("optimizing permutations")	
-	while(self:improveAllocationPermute(true)) do 
-		emu.frameadvance()
-		print("permute pass")
-	end
+	--while(self:improveAllocationPermute(true)) do 
+		--emu.frameadvance()
+		--print("permute pass")
+	--end
 	
 	--self:chapterGaps()
 	--self:promoClasses()
