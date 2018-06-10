@@ -49,7 +49,7 @@ function auctionStateObj:paretoPrices(vMatrix)
 	-- select A | Comp.V_A is minimal to automatically generate positive prices
 	local spiteValues = {}
 	local minSpite = 999
-	local minSpite_i = 0	
+	local minSpite_i = 0
 	for player_i = 1, self.players.count do
 		spiteValues[player_i] = spiteValue(vMatrix[player_i],player_i)
 		

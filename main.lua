@@ -7,27 +7,22 @@ require("unitData")
 function auctionStateObj:standardProcess()
 	--self:printBids()
 	
-	self:quickAssign()
+	--self:quickAssign()
 	
 	print()
 	print("Initial unoptimized teams")
 	
 	self:printTeams()
 
+	self:exhaustiveSwaps(true)
+	
 	print()
-	print(string.format("current score: %-6.2f", self:allocationScore()))	
-	print("optimizing swaps")	
-	while(self:improveAllocationSwaps()) do 
-		emu.frameadvance()
-	end
-	
 	print(string.format("current score: %-6.2f", self:allocationScore()))
-	
 	print("optimizing permutations")	
-	--while(self:improveAllocationPermute(true)) do 
-		--emu.frameadvance()
-		--print("permute pass")
-	--end
+	while(self:improveAllocationPermute(true)) do 
+		emu.frameadvance()
+		print("permute pass")
+	end
 	
 	--self:chapterGaps()
 	--self:promoClasses()
@@ -47,4 +42,11 @@ FE7auction2.players.count = 5
 
 print("FE7auction2")
 FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
+
+print("quick")
+FE7auction2:quickAssign()
+FE7auction2:standardProcess()
+
+print("maxSat")
+FE7auction2:maxSatAssign()
 FE7auction2:standardProcess()

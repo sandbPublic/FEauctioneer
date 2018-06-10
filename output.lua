@@ -29,7 +29,7 @@ function auctionStateObj:printTeams()
 		print()
 		print(tenChar(self.players[player_i]) .. "bids   item")
 		
-		for teamMember_i = 1, self.teamSize do
+		for teamMember_i = 1, self.maxTeamSize do
 			local unit_i = teams[player_i][teamMember_i]
 		
 			print(tenChar(self.units[unit_i][name_I]) .. 
@@ -124,7 +124,7 @@ function auctionStateObj:printTeamValueMatrix()
 			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] - paretoPrices[player_j]
 		end
 	end
-	printMatrix("Handicapped Team Value Matrix")
+	printMatrix("Team Value - Handicap Matrix")
 	
 	-- subtract max from each row and print again
 	for player_i = 1, self.players.count do

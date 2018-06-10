@@ -1,42 +1,108 @@
+function auctionStateObj:clearAssign()
+	for unit_i = 1, self.units.count do
+		self.owner[unit_i] = 0
+	end
+	
+	-- index 0 refers to unassigned units
+	self.teamSizes[0] = self.units.count
+	
+	for player_i = 1, self.players.count do
+		self.teamSizes[player_i] = 0
+	end
+end
+
+function auctionStateObj:assign(unit_i, player_i)
+	self.teamSizes[self.owner[unit_i]] = self.teamSizes[self.owner[unit_i]] - 1
+
+	self.owner[unit_i] = player_i
+	
+	self.teamSizes[player_i] = self.teamSizes[player_i] + 1
+end
+
+function auctionStateObj:fullTeam(player_i)
+	return self.teamSizes[player_i] >= self.maxTeamSize
+end
+
 -- for testing convergence
 function auctionStateObj:randomAssign()
-	local teamSize = {}
-	for player_i = 1, self.players.count do
-		teamSize[player_i] = 0
-	end
+	self:clearAssign()
 	
 	for unit_i = 1, self.units.count do
 		local player_i = math.random(self.players.count)
-		while (teamSize[player_i] >= self.teamSize) do
+		while self:fullTeam(player_i) do
 			player_i = player_i + 1
 			if player_i > self.players.count then
 				player_i = 1
 			end
 		end
 	
-		self.owner[unit_i] = player_i	
-		teamSize[self.owner[unit_i]] = teamSize[self.owner[unit_i]] + 1
+		self:assign(unit_i, player_i)
+	end
+end
+
+function auctionStateObj:moduloAssign(startOffset)
+	self:clearAssign()
+
+	startOffset = startOffset or 0
+
+	for unit_i = 1, self.units.count do
+		local player_i = ((unit_i - 1 + startOffset) % self.players.count) + 1
+		-- player_i(1) = 1, player_i(self.players.count) = self.players.count, not 0
+	
+		self:assign(unit_i, player_i)
 	end
 end
 
 -- assign unit to highest bidder that doesn't have a full team yet
 function auctionStateObj:quickAssign()
-	local teamSize = {}
-	for player_i = 1, self.players.count do
-		teamSize[player_i] = 0
-	end
+	self:clearAssign()
 	
 	for unit_i = 1, self.units.count do
 		local maxBid = -1
 		for player_i = 1, self.players.count do
-			if teamSize[player_i] < self.teamSize then 
+			if not self:fullTeam(player_i) then 
 				if maxBid < self.bids[player_i][unit_i] then
 					maxBid = self.bids[player_i][unit_i]
-					self.owner[unit_i] = player_i
+					
+					self:assign(unit_i, player_i)
 				end
 			end
 		end
-		teamSize[self.owner[unit_i]] = teamSize[self.owner[unit_i]] + 1
+	end
+end
+
+-- max sat assign, not in unit order
+function auctionStateObj:maxSatAssign()
+	self:clearAssign()	
+	
+	while self.teamSizes[0] > 0 do -- while units are unassigned
+		local maxSat = -999
+		local maxSat_unit_i = 0
+		local maxSat_player_i = 0
+	
+		--find max sat gain assignment remaining and assign
+		for unit_i = 1, self.units.count do
+			if self.owner[unit_i] == 0 then
+				local bidArray = {} -- self.bids indexes first by player, so won't work for spiteValue
+				for player_i = 1, self.players.count do
+					bidArray[player_i] = self.bids[player_i][unit_i]
+				end
+				
+				for player_i = 1, self.players.count do
+					if not self:fullTeam(player_i) then
+						local sat = spiteValue(bidArray, player_i)
+						
+						if maxSat < sat then
+							maxSat = sat
+							maxSat_unit_i = unit_i
+							maxSat_player_i = player_i
+						end
+					end
+				end
+				
+				self:assign(maxSat_unit_i, maxSat_player_i)
+			end
+		end
 	end
 end
 
@@ -78,6 +144,21 @@ function auctionStateObj:improveAllocationSwaps(printV)
 	return swapped
 end
 
+function auctionStateObj:exhaustiveSwaps(printV)
+	if printV then
+		print()
+		print(string.format("current score: %-6.2f", self:allocationScore()))	
+		print("optimizing swaps")
+	end
+	
+	while(self:improveAllocationSwaps(printV)) do
+		if printV then
+			print("one swap pass")
+		end
+		emu.frameadvance()
+	end
+end
+
 perms = {}
 perms.count = 0
 function permgen (a, n)
@@ -115,22 +196,22 @@ function auctionStateObj:improveAllocationPermute(printV)
 	local teams = self:teams()
 	local pUnits = {} -- units currently permuting
 	
-	for team_A = 1, self.teamSize do
+	for team_A = 1, self.maxTeamSize do
 	pUnits[1] = teams[1][team_A]
 	print("A" .. team_A)
 	
-	for team_B = 1, self.teamSize do
+	for team_B = 1, self.maxTeamSize do
 	pUnits[2] = teams[2][team_B]
 	print(team_B)
 	
-	for team_C = 1, self.teamSize do
+	for team_C = 1, self.maxTeamSize do
 	pUnits[3] = teams[3][team_C]
 	emu.frameadvance()
 	
-	for team_D = 1, self.teamSize do
+	for team_D = 1, self.maxTeamSize do
 	pUnits[4] = teams[4][team_D]
 	
-	for team_E = 1, self.teamSize do
+	for team_E = 1, self.maxTeamSize do
 	pUnits[5] = teams[5][team_E]
 	
 		for perm_i = 1, perms.count do
@@ -158,12 +239,14 @@ function auctionStateObj:improveAllocationPermute(printV)
 					print(string.format("new score: %-6.2f", self:allocationScore()))
 				end
 				
+				self:exhaustiveSwaps(printV)
 				teams = self:teams()
 				pUnits[1] = teams[1][team_A]
 				pUnits[2] = teams[2][team_B]
 				pUnits[3] = teams[3][team_C]
 				pUnits[4] = teams[4][team_D]
 				pUnits[5] = teams[5][team_E]
+				
 			else
 				for player_i = 1, self.players.count do
 					self.owner[pUnits[player_i]] = player_i
@@ -178,7 +261,7 @@ function auctionStateObj:improveAllocationPermute(printV)
 	
 	if printV and not permuted then
 		print()
-		print("couldn't improve allocation")
+		print("couldn't improve allocation by rotation")
 	end
 	return permuted
 end

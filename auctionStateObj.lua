@@ -20,7 +20,8 @@ function P:new()
 	
 	o.bids = {} -- PxU array of numbers
 	o.owner = {} -- U array of player ids.
-	o.teamSize = 0
+	o.maxTeamSize = 0
+	o.teamSizes = {} -- for allocations
 	
 	return o
 end
@@ -47,7 +48,7 @@ function P:initialize(version, bidFile, numPlayers)
 			self.promoItemTotals[self.units[unit_i][promo_I]] + 1
 	end
 	
-	self.teamSize = self.units.count/self.players.count
+	self.maxTeamSize = self.units.count/self.players.count
 end
 
 function P:readBids(bidFile, numPlayers)
