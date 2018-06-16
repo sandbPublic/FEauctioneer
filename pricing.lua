@@ -13,6 +13,9 @@ function spiteValue(array, i)
 	return array[i] - spite/(j-2) -- j-2 == #opponents
 end
 
+-- reduce value of teams with promo item redundancies and unbalanced join times
+function auctionStateObj:adjustedBids()
+
 -- the vMatrix shows how player i values player j's team for all i,j
 function auctionStateObj:teamValueMatrix()
 	local vMatrix = {}
@@ -34,10 +37,6 @@ function auctionStateObj:teamValueMatrix()
 	end
 	
 	return vMatrix
-end
-
--- reduce value of teams with promo item redundancies and unbalanced join times
-function auctionStateObj:adjustedTeamValueMatrix()
 end
 
 -- finds prices that produce equalized satisfaction

@@ -10,6 +10,110 @@ local promo_GR = 5 -- guiding ring
 local promo_HS = 6 -- heaven seal
 local promo_OS = 7 -- ocean seal
 local promo_FC = 8 -- fell contract
+local promo_ES = 9 -- earth seal, item only
+
+-- returns a #chapter x #itemTypes array of total items available
+local function constructPIcount(pIAcqTime, numChapters)
+	local runningTotal = {}
+	local pICount = {}
+	pICount[1] = {}	
+	
+	for itemT_i = promo_KC, promo_ES do
+		runningTotal[itemT_i] = 0
+		pICount[1][itemT_i] = 0 -- first chapter, no promo items
+	end
+	
+	local entry_i = 1
+	while pIAcqTime[entry_i] do
+		local chapter = pIAcqTime[entry_i][1]
+		local itemType = pIAcqTime[entry_i][2]
+		local numItems = pIAcqTime[entry_i][3]
+		
+		-- increment running total by 1 if single item, 9 if shop
+		runningTotal[itemType] = runningTotal[itemType] + numItems
+		
+		-- insert running total into count for this chapter
+		pICount[chapter] = {}
+		for itemT_i = promo_KC, promo_ES do
+			pICount[chapter][itemT_i] = runningTotal[itemT_i]
+		end
+		
+		entry_i = entry_i + 1
+	end
+	
+	-- now that sparse entries are inserted, fill in the rest from prev chapters
+	for chapter_i = 2, numChapters do
+		if not pICount[chapter_i] then
+			pICount[chapter_i] = {}
+			
+			for itemT_i = promo_KC, promo_ES do
+				pICount[chapter_i][itemT_i] = pICount[chapter_i - 1][itemT_i]
+			end
+		end
+	end
+	
+	return pICount
+end
+
+-- U x maxTeamSize-1
+-- for each unit, array of how the bid values 
+-- should be scaled down depending on how many
+-- earlier units in the same team will use the
+-- same item (assume team will not use more than
+-- one earth seal). if first unit, then PVF == 1
+local function constructLatePFactor(mode, teamSize, numChapters)
+	local unit_i = 1
+	mode.LPFactor = {}
+	while mode[unit_i] do
+		mode.LPFactor[unit_i] = {}
+		local joinChapter = mode[unit_i][2] -- join chapter
+		local totalUnitAvail = numChapters - mode[unit_i][2] + 1
+		-- #chapters this unit is available
+		
+		local function getEarliestPromoChapter(pIType, priorItemsNeeded)
+			if pIType == promo_NO then
+				return joinChapter
+			end
+		
+			for chapter_i = 1, numChapters do
+				local itemSurplus = mode.promoItemCount[chapter_i][pIType] - priorItemsNeeded
+			
+				if (itemSurplus > 0) or 
+					(itemSurplus + mode.promoItemCount[chapter_i][promo_ES] > 0 and pIType < promo_HS) then		
+					-- can use an earth seal if pIType < promo_HS
+				
+					return math.max(chapter_i, joinChapter)
+				end
+			end
+
+			return numChapters
+		end
+		
+		-- find earliestPromoChapter if after join time
+		-- ignore any levels needed to promote (for now?)
+		-- for each number of predecessors possible,
+		-- compute the LatePromoFactor
+		
+		local pIType = mode[unit_i][3]
+		local earliestPromoChapter = getEarliestPromoChapter(pIType, 0)
+		for predec_i = 1, teamSize - 1 do
+			local underPromotedTime = getEarliestPromoChapter(pIType, predec_i) - earliestPromoChapter
+			
+			-- lose 1/8 more value each chapter underpromoted until value reaches 0
+			-- this method is arbitrary
+			
+			local lostValue = 0 -- in units of "chapters available"
+			for i = 1, underPromotedTime do
+				lostValue = lostValue + math.min(1, i/8)
+			end
+			
+			-- scale to 1
+			mode.LPFactor[unit_i][predec_i] = (totalUnitAvail - lostValue) / totalUnitAvail
+		end
+		
+		unit_i = unit_i + 1
+	end
+end
 
 -- FE6 Normal Mode, chapters from 0
 P.sixNM = {
@@ -106,8 +210,8 @@ P.sixNM = {
 
 -- FE7 Hector Normal Mode, chapters from 0
 P.sevenHNM = {
-	-- chapter 11/0
-	-- 12/1
+	--chapter 11/0
+	--12/1
 	{"Matthew", 1, promo_FC}, -- free for 11/0
 	{"Serra", 1, promo_GR},
 	{"Oswin", 1, promo_KC},
@@ -177,6 +281,94 @@ P.sevenHNM = {
 	--33/29
 	--{"Athos", 29, promo_NO}
 }
+
+-- promo Item Acquire Time
+-- sparse array of {chapter, item type, # of items}
+-- most items are not convenient to use mid chapter
+-- assume they are used at start of next chapter
+P.sevenHNM.pIAcqTime = {
+	--chapter 11/0
+	--12/1
+	--13/2
+	--13x/3
+	--14/4
+	--15/5
+	--16/6
+	--17/7
+	
+	{08, promo_KC, 1}, -- chest
+	{08, promo_HC, 1}, -- chest
+	--17x/8
+	--18/9
+	
+	{10, promo_GR, 1}, -- shaman
+	--19/10
+	
+	{11, promo_OB, 1}, -- Uhai
+	--19x/11
+	--20/12
+	
+	{13, promo_HC, 1}, -- chest
+	--21/13
+	
+	{14, promo_EW, 1}, -- village
+	{14, promo_HC, 1}, -- steal Oleg
+	--22/14
+	
+	{15, promo_KC, 1}, -- cavalier
+	--23/15
+	{15, promo_OS, 1}, -- sand (can get from shops later but never need more than 1)
+	
+	{16, promo_HC, 1}, -- sand
+	{16, promo_GR, 1}, -- steal Jasmine
+	--23x/16
+	--24/17
+	
+	{18, promo_ES, 1}, -- village
+	{18, promo_OB, 1}, -- Village A, Sniper B
+	{18, promo_OS, 9}, -- A ONLY secret shop
+	--25/18
+	
+	{19, promo_EW, 1}, -- village
+	--26/19
+	{19, promo_HS, 1}, -- auto
+	
+	--27/20
+	
+	{21, promo_GR, 1}, -- A ONLY, chest
+	{21, promo_HC, 1}, -- B ONLY, chest
+	--28/21
+	
+	{22, promo_EW, 1}, -- bishop
+	{22, promo_HS, 1}, -- auto, chapter end
+	--28x/22
+	{22, promo_FC, 1}, -- Sonia, survive chapter
+	
+	--29/23
+	
+	{24, promo_GR, 1}, -- steal sniper
+	--30/24
+	--31/25
+	{25, promo_KC, 9}, -- secret shop, survive chapter
+	{25, promo_HC, 9},
+	{25, promo_OB, 9},
+	{25, promo_EW, 9},
+	{25, promo_GR, 9},
+	
+	--31x/26
+	--32/27
+	{27, promo_ES, 1}, -- nils start
+	
+	{28, promo_OS, 9}, -- secret shop @ end
+	{28, promo_FC, 9}, 
+	{28, promo_ES, 9}
+	--32x/28
+	--33/29
+}
+
+P.sevenHNM.promoItemCount = constructPIcount(P.sevenHNM.pIAcqTime, 29)
+
+constructLatePFactor(P.sevenHNM, 7, 29)
 
 -- FE8 Hard Mode, chapters from 0 (prologue, 5x=8 as they are not available for 6&7)
 P.eightHM = {

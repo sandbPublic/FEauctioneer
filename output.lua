@@ -141,3 +141,19 @@ function auctionStateObj:printTeamValueMatrix()
 	end
 	printMatrix("Expected Victory Margin Matrix")
 end
+
+function auctionStateObj:printLatePromotionFactor()
+	print()
+	print("Late Promotion Factors")
+
+	for unit_i = 1, self.units.count do
+		local str = tenChar(self.units[unit_i][1])
+	
+		local itemReq_i = 1
+		while self.latePromoFactor[unit_i][itemReq_i] do
+			str = str .. string.format("%6.3f ", self.latePromoFactor[unit_i][itemReq_i])
+			itemReq_i = itemReq_i + 1
+		end
+		print(str)
+	end
+end

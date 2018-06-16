@@ -16,12 +16,19 @@ function P:new()
 	o.players.count = 0
 	o.units = {} -- names, chapter, promo_item
 	o.units.count = 0
-	o.promoItemTotals = {}
 	
 	o.bids = {} -- PxU array of numbers
 	o.owner = {} -- U array of player ids.
 	o.maxTeamSize = 0
 	o.teamSizes = {} -- for allocations
+	
+	o.latePromoFactor = {}
+	-- U x maxTeamSize-1
+	-- for each unit, array of how the bid values 
+	-- should be scaled down depending on how many
+	-- earlier units in the same team will use the
+	-- same item (assume team will not use more than
+	-- one earth seal). if first unit, then PVF == 1
 	
 	return o
 end
@@ -33,22 +40,15 @@ function P:initialize(version, bidFile, numPlayers)
 	self.units.count = 0
 	while version[self.units.count+1] do
 		self.units.count = self.units.count + 1		
-		self.units[self.units.count] = 
-			version[self.units.count]
+		self.units[self.units.count] = version[self.units.count]
 	end
 	
 	-- load bids
 	self:readBids(bidFile, numPlayers)
 	
-	for promoItem_i = 0, 8 do
-		self.promoItemTotals[promoItem_i] = 0
-	end
-	for unit_i = 1, self.units.count do
-		self.promoItemTotals[self.units[unit_i][promo_I]] = 
-			self.promoItemTotals[self.units[unit_i][promo_I]] + 1
-	end
-	
 	self.maxTeamSize = self.units.count/self.players.count
+	
+	self.latePromoFactor = version.LPFactor
 end
 
 function P:readBids(bidFile, numPlayers)
@@ -103,23 +103,6 @@ function P:teams()
 	end
 	
 	return teams
-end
-
--- takes 2D array, eg first dimension players, second dimension value
-function sumOfSquares(array)
-	local sum = 0
-	local i = 1 -- non-promoters are marked with 0 so they are correctly skipped
-	while array[i] do
-		local sumOfSquares = 0
-		local j = 1
-		while array[i][j] do
-			sumOfSquares = sumOfSquares + array[i][j]*array[i][j]
-			j = j + 1
-		end
-		sum = sum + sumOfSquares
-		i = i + 1
-	end
-	return sum
 end
 
 -- gaps between drafted units appearing, player.count X (teamSize + 1) array
@@ -189,66 +172,7 @@ function P:chapterGaps(printV)
 end
 
 -- promo items
-P.promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC"}
+P.promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC", "eSeal"}
 P.promoStrings[0] = "None "
-
--- number of each promo type, numOf_player X 8 array
--- values normalized
-function P:promoClasses(printV)
-	local ret = {} -- normalized values
-	local count = {} -- raw counts
-	
-	if printV then
-		print()
-		print("Promo classes")
-	end
-	
-	for player_i = 1, self.players.count do
-		ret[player_i] = {}
-		count[player_i] = {}
-		for promoItem_i = 0, 8 do
-			count[player_i][promoItem_i] = 0
-		end
-	end
-	
-	-- for each unit, increment its owner's promo item count
-	for unit_i = 1, self.units.count do
-		count[self.owner[unit_i]][self.units[unit_i][promo_I]] = 
-			count[self.owner[unit_i]][self.units[unit_i][promo_I]] + 1
-	end
-	
-	for player_i = 1, self.players.count do
-		if printV then 
-			print() 
-			print(self.players[player_i]) 
-		end
-		
-		local sumOfSq = 0
-		for promoItem_i = 0, 8 do
-			local normalized = count[player_i][promoItem_i]/self.promoItemTotals[promoItem_i]
-			ret[player_i][promoItem_i] = normalized
-			
-			local square = 0
-			if promoItem_i > 0 then -- don't count non promotions
-				square = normalized*normalized
-			end
-			sumOfSq = sumOfSq + square
-			
-			if printV and count[player_i][promoItem_i] > 0 then
-				print(string.format("%s %d/%d=%5.3f  %5.3f", 
-					P.promoStrings[promoItem_i], count[player_i][promoItem_i], 
-					self.promoItemTotals[promoItem_i], normalized, square))
-			end
-		end
-		if printV then print(string.format("sum of squares:  %5.3f", sumOfSq)) end
-	end
-	
-	if printV then
-		print()
-		print(string.format("total %4.2f", sumOfSquares(ret)))
-	end
-	
-	return ret
-end
 
 return auctionStateObj

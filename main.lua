@@ -36,13 +36,18 @@ function auctionStateObj:standardProcess()
 	print("END")
 end
 
+
+
+
 local FE7auction2 = auctionStateObj:new()
 FE7auction2.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}
 FE7auction2.players.count = 5
 
 print("FE7auction2")
 FE7auction2:initialize(unitData.sevenHNM, "FE7auction2.bids.txt", 5)
+FE7auction2:printLatePromotionFactor()
 
+--[[
 print("quick")
 FE7auction2:quickAssign()
 FE7auction2:standardProcess()
@@ -50,3 +55,4 @@ FE7auction2:standardProcess()
 print("maxSat")
 FE7auction2:maxSatAssign()
 FE7auction2:standardProcess()
+]]--
