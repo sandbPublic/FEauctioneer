@@ -3,9 +3,12 @@ function tenChar(str)
 	return string.format("%-10.10s ", str)
 end
 
-function auctionStateObj:printBids()
+function auctionStateObj:printBids(bids, str)
+	bids = bids or self.bids
+	str = str or "-BIDS-"
+	
 	print()
-	print("-BIDS-")
+	print(str)
 	local str = tenChar("")
 	for player_i = 1, self.players.count do
 		str = str .. tenChar(self.players[player_i])
@@ -15,7 +18,7 @@ function auctionStateObj:printBids()
 	for unit_i = 1, self.units.count do
 		str = tenChar(self.units[unit_i][name_I])
 		for player_i = 1, self.players.count do
-			str = str ..  tenChar(string.format("%05.2f", self.bids[player_i][unit_i]))
+			str = str ..  tenChar(string.format("%05.2f", bids[player_i][unit_i]))
 		end
 		
 		print(str)
@@ -25,16 +28,23 @@ end
 function auctionStateObj:printTeams()
 	local teams = self:teams()
 
+	local adjBids = self:adjustedBids()
+	
 	for player_i = 1, self.players.count do
 		print()
-		print(tenChar(self.players[player_i]) .. "bids   item")
+		print(tenChar(self.players[player_i]) .. "bids   item   adjusted bid")
 		
 		for teamMember_i = 1, self.maxTeamSize do
 			local unit_i = teams[player_i][teamMember_i]
+			local str = tenChar(self.units[unit_i][name_I])
 		
-			print(tenChar(self.units[unit_i][name_I]) .. 
-				string.format("%5.2f  ", self.bids[player_i][unit_i]) ..
-				self.promoStrings[self.units[unit_i][promo_I]])
+			str = str .. string.format("%5.2f  ", self.bids[player_i][unit_i]) ..
+				self.promoStrings[self.units[unit_i][promo_I]] .. "  "
+			
+			if self.bids[player_i][unit_i] ~= adjBids[player_i][unit_i] then
+				str = str .. string.format("%5.2f  ", adjBids[player_i][unit_i])
+			end
+			print(str)
 		end
 	end
 end

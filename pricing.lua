@@ -15,9 +15,40 @@ end
 
 -- reduce value of teams with promo item redundancies and unbalanced join times
 function auctionStateObj:adjustedBids()
+	local adjBids = {}
+	for player_i = 1, self.players.count do
+		adjBids[player_i] = {}
+	end
+	
+	local teams = self:teams()
+		
+	for player_i = 1, self.players.count do
+		for member_i = 1, self.maxTeamSize do
+			local member = teams[player_i][member_i]
+		
+			--get num predecessors with same promo type (competitors)
+			local numCompetitors = 0
+			for member_j = 1, member_i - 1 do
+				if self.units[teams[player_i][member_j]][3] == 
+					self.units[member][3] then
+					numCompetitors = numCompetitors + 1
+				end
+			end
+			
+			for player_i = 1, self.players.count do
+				adjBids[player_i][member] = self.bids[player_i][member] 
+					* self.latePromoFactor[member][numCompetitors]
+			end
+		end
+	end
+	
+	return adjBids
+end
 
 -- the vMatrix shows how player i values player j's team for all i,j
-function auctionStateObj:teamValueMatrix()
+function auctionStateObj:teamValueMatrix(bids)
+	bids = bids or self:adjustedBids()
+
 	local vMatrix = {}
 	for player_i = 1, self.players.count do
 		vMatrix[player_i] = {}
@@ -32,7 +63,7 @@ function auctionStateObj:teamValueMatrix()
 		player_j = self.owner[unit_i]
 		for player_i = 1, self.players.count do
 			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] 
-				+ self.bids[player_i][unit_i]
+				+ bids[player_i][unit_i]
 		end
 	end
 	

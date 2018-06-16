@@ -55,7 +55,7 @@ local function constructPIcount(pIAcqTime, numChapters)
 	return pICount
 end
 
--- U x maxTeamSize-1
+-- U x maxTeamSize
 -- for each unit, array of how the bid values 
 -- should be scaled down depending on how many
 -- earlier units in the same team will use the
@@ -66,8 +66,8 @@ local function constructLatePFactor(mode, teamSize, numChapters)
 	mode.LPFactor = {}
 	while mode[unit_i] do
 		mode.LPFactor[unit_i] = {}
-		local joinChapter = mode[unit_i][2] -- join chapter
-		local totalUnitAvail = numChapters - mode[unit_i][2] + 1
+		local joinChapter = mode[unit_i][chapter_I] -- join chapter
+		local totalUnitAvail = numChapters - mode[unit_i][chapter_I] + 1
 		-- #chapters this unit is available
 		
 		local function getEarliestPromoChapter(pIType, priorItemsNeeded)
@@ -94,8 +94,9 @@ local function constructLatePFactor(mode, teamSize, numChapters)
 		-- for each number of predecessors possible,
 		-- compute the LatePromoFactor
 		
-		local pIType = mode[unit_i][3]
+		local pIType = mode[unit_i][promo_I]
 		local earliestPromoChapter = getEarliestPromoChapter(pIType, 0)
+		mode.LPFactor[unit_i][0] = 1
 		for predec_i = 1, teamSize - 1 do
 			local underPromotedTime = getEarliestPromoChapter(pIType, predec_i) - earliestPromoChapter
 			
