@@ -1,5 +1,5 @@
 local P = {}
-unitData = P
+gameData = P
 
 local promo_NO = 0 -- can't promote
 local promo_KC = 1 -- knight crest
@@ -16,11 +16,11 @@ local promo_ES = 9 -- earth seal, item only
 local function constructPIcount(pIAcqTime, numChapters)
 	local runningTotal = {}
 	local pICount = {}
-	pICount[1] = {}	
+	pICount[0] = {}	
 	
 	for itemT_i = promo_KC, promo_ES do
 		runningTotal[itemT_i] = 0
-		pICount[1][itemT_i] = 0 -- first chapter, no promo items
+		pICount[0][itemT_i] = 0 -- first chapter, no promo items
 	end
 	
 	local entry_i = 1
@@ -42,7 +42,7 @@ local function constructPIcount(pIAcqTime, numChapters)
 	end
 	
 	-- now that sparse entries are inserted, fill in the rest from prev chapters
-	for chapter_i = 2, numChapters do
+	for chapter_i = 1, numChapters do
 		if not pICount[chapter_i] then
 			pICount[chapter_i] = {}
 			
@@ -75,7 +75,7 @@ local function constructLatePFactor(mode, teamSize, numChapters)
 				return joinChapter
 			end
 		
-			for chapter_i = 1, numChapters do
+			for chapter_i = 0, numChapters do
 				local itemSurplus = mode.promoItemCount[chapter_i][pIType] - priorItemsNeeded
 			
 				if (itemSurplus > 0) or 
@@ -409,4 +409,4 @@ P.eightHM = {
 	{"Syrene", 17, promo_NO}
 }
 
-return unitData
+return gameData

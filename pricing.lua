@@ -13,7 +13,7 @@ function spiteValue(array, i)
 	return array[i] - spite/(j-2) -- j-2 == #opponents
 end
 
--- reduce value of teams with promo item redundancies and unbalanced join times
+-- reduce value of teams with promo item redundancies
 function auctionStateObj:adjustedBids()
 	local adjBids = {}
 	for player_i = 1, self.players.count do
@@ -45,6 +45,39 @@ function auctionStateObj:adjustedBids()
 	return adjBids
 end
 
+-- team roster size per each chapter
+function auctionStateObj:teamPopPerChapter(lastChapter)
+	local tPPC = {}
+	tPPC[0] = {}
+	
+	local currPop = {}
+	for player_i = 1, self.players.count do
+		tPPC[0][player_i] = 0
+		currPop[player_i] = 0
+	end
+	
+	for unit_i = 1, self.units.count do
+		currPop[self.owner[unit_i]] = currPop[self.owner[unit_i]] + 1
+		local chapter = self.units[unit_i][chapter_I]
+	
+		tPPC[chapter] = {}
+		for player_i = 1, self.players.count do
+			tPPC[chapter][player_i] = currPop[player_i]
+		end
+	end
+	
+	for chapter_i = 1, lastChapter do
+		if not tPPC[chapter_i] then
+			tPPC[chapter_i] = {}
+			for player_i = 1, self.players.count do
+				tPPC[chapter_i][player_i] = tPPC[chapter_i-1][player_i]
+			end
+		end
+	end
+	
+	return tPPC
+end
+
 -- the vMatrix shows how player i values player j's team for all i,j
 function auctionStateObj:teamValueMatrix(bids)
 	bids = bids or self:adjustedBids()
@@ -70,11 +103,48 @@ function auctionStateObj:teamValueMatrix(bids)
 	return vMatrix
 end
 
+--[[
+-- reduce team value to compensate for redundancies
+-- for example:
+-- if the worst team can complete a chapter in 3 turns,
+-- then no team can save more than 2 turns. nevertheless,
+-- there may be three or more units that each individually
+-- save one turn, yet all together cannot save 3 turns.
+-- there is some max number of turns savable from the 
+-- worst teams turncount, and we seek to reduce the value
+-- of teams in relation to this max and the teams' unadjusted
+-- values i.e. bid sums
+
+-- the function f(value) = adjusted value should have the 
+-- following properties:
+-- f(0) = 0
+-- f(infinity) -> M (max)
+-- f(v) <= v
+-- f(v) = M(1-e^(-v/M)) satisfies this
+-- for now, let each player's bid sum = max for that player
+]]--
+function auctionStateObj:adjustedValueMatrix(vMatrix)
+	vMatrix = vMatrix or self:teamValueMatrix()
+
+	local adjVMatrix = {}
+	
+	for player_i = 1, self.players.count do
+		adjVMatrix[player_i] = {}
+		local M = self.bidSums[player_i]
+		
+		for player_j = 1, self.players.count do
+			adjVMatrix[player_i][player_j] = M*(1-2.71828^(-vMatrix[player_i][player_j] / M))
+		end
+	end
+	
+	return adjVMatrix
+end
+
 -- finds prices that produce equalized satisfaction
 -- A's satisfaction equals Handicapped Team Value - average opponent HTV
 -- (from A's subjective perspective)
 function auctionStateObj:paretoPrices(vMatrix)	
-	vMatrix = vMatrix or self:teamValueMatrix()
+	vMatrix = vMatrix or self:adjustedValueMatrix()
 	
 	-- select A | Comp.V_A is minimal to automatically generate positive prices
 	local spiteValues = {}
@@ -100,7 +170,7 @@ end
 
 -- satisfaction is proportional to net spiteValue
 function auctionStateObj:allocationScore(vMatrix)
-	vMatrix = vMatrix or self:teamValueMatrix()
+	vMatrix = vMatrix or self:adjustedValueMatrix()
 	
 	local netSpiteValue = 0	
 	for player_i = 1, self.players.count do

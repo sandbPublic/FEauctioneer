@@ -1,7 +1,7 @@
 local P = {}
 auctionStateObj = P
 
--- using indexes instead of named table fields allows for more organized unitData
+-- using indexes instead of named table fields allows for more organized gameData
 name_I = 1
 chapter_I = 2
 promo_I = 3
@@ -18,6 +18,8 @@ function P:new()
 	o.units.count = 0
 	
 	o.bids = {} -- PxU array of numbers
+	o.bidSums = {} -- P array, used for redundancy adjusted team values
+	
 	o.owner = {} -- U array of player ids.
 	o.maxTeamSize = 0
 	o.teamSizes = {} -- for allocations
@@ -33,7 +35,7 @@ function P:new()
 	return o
 end
 
--- takes in a table from unitData
+-- takes in a table from gameData
 function P:initialize(version, bidFile, numPlayers)
 	-- load data
 	self.units = {}
@@ -56,8 +58,10 @@ function P:readBids(bidFile, numPlayers)
 
 	io.input(bidFile)
 	self.bids = {}
+	self.bidSums = {}
 	for player_i = 1, self.players.count do
 		self.bids[player_i] = {}
+		self.bidSums[player_i] = 0
 	end
 		
 	local playerWeight = {} 
@@ -80,6 +84,8 @@ function P:readBids(bidFile, numPlayers)
 				self.bids[player_i][unit_i] = (bidTotal[unit_i]/numPlayers)
 				--	* playerWeight[player_i] * (1 + 0.6*(math.random()-0.5))
 			end
+			
+			self.bidSums[player_i] = self.bidSums[player_i] + self.bids[player_i][unit_i]
 		end
 	end
 	

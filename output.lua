@@ -18,11 +18,23 @@ function auctionStateObj:printBids(bids, str)
 	for unit_i = 1, self.units.count do
 		str = tenChar(self.units[unit_i][name_I])
 		for player_i = 1, self.players.count do
-			str = str ..  tenChar(string.format("%05.2f", bids[player_i][unit_i]))
+			str = str ..  tenChar(string.format(" %5.2f", bids[player_i][unit_i]))
 		end
 		
 		print(str)
 	end
+	
+	str = "-----------"
+	for player_i = 1, self.players.count do
+		str = str ..  "-----------"
+	end
+	print(str)
+	
+	str = tenChar("raw sums ")
+	for player_i = 1, self.players.count do
+		str = str ..  tenChar(string.format("%06.2f", self.bidSums[player_i]))
+	end
+	print(str)
 end
 
 function auctionStateObj:printTeams()
@@ -96,7 +108,8 @@ end
 
 -- also print handicaps and satisfaction
 function auctionStateObj:printTeamValueMatrix()
-	local vMatrix = self:teamValueMatrix()
+	local rawVMatrix = self:teamValueMatrix(self.bids)
+	local vMatrix = rawVMatrix
 	
 	local function printMatrix(header)
 		print()
@@ -119,8 +132,22 @@ function auctionStateObj:printTeamValueMatrix()
 	end
 
 	printMatrix("Raw Team Value Matrix")
+	
+	vMatrix = self:teamValueMatrix()
+	printMatrix("Promo Item Adjusted Team Value Matrix")
+	
+	vMatrix = self:adjustedValueMatrix()
+	printMatrix("Promo Item & Redundancy Adjusted Team Value Matrix")
 		
-	local paretoPrices = self:paretoPrices()
+	for player_i = 1, self.players.count do
+		for player_j = 1, self.players.count do
+			vMatrix[player_i][player_j] = rawVMatrix[player_i][player_j] - vMatrix[player_i][player_j]
+		end
+	end
+	printMatrix("Net Adjustment Matrix (Raw - PI&RAdj matrices, satisfaction NA)")
+	
+	vMatrix = self:adjustedValueMatrix()
+	local paretoPrices = self:paretoPrices(vMatrix)
 	print()
 	local str = "HANDICAPS  "
 	for player_i = 1, self.players.count do
@@ -165,5 +192,29 @@ function auctionStateObj:printLatePromotionFactor()
 			itemReq_i = itemReq_i + 1
 		end
 		print(str)
+	end
+end
+
+function auctionStateObj:printTeamPopPerChapter(tPPC)
+	tPPC = tPPC or self:teamPopPerChapter(29)
+
+	print()
+	print("Team Population Per Chapter")
+
+	local str = tenChar("")
+	for player_i = 1, self.players.count do
+		str = str .. tenChar(self.players[player_i])
+	end
+	print(str)
+	
+	local chapter_i = 0
+	while tPPC[chapter_i] do
+		local str = tenChar(chapter_i)
+		for player_i = 1, self.players.count do
+			str = str .. tenChar(tPPC[chapter_i][player_i])
+		end
+		print(str)
+	
+		chapter_i = chapter_i + 1
 	end
 end
