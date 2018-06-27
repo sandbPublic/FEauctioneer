@@ -120,8 +120,12 @@ end
 -- f(0) = 0
 -- f(infinity) -> M (max)
 -- f(v) <= v
--- f(v) = M(1-e^(-v/M)) satisfies this
+-- f(v) = Mv/(M+v) satisfies this
+-- and has some mathematic motivation (ie not entirely arbitrary)
 -- for now, let each player's bid sum = max for that player
+
+-- also, should anchor to f(M/#p) = M/#p, not f(v) <= v
+-- thus f(v) = Mv/(M(p-1)/p+v)
 ]]--
 function auctionStateObj:adjustedValueMatrix(vMatrix)
 	vMatrix = vMatrix or self:teamValueMatrix()
@@ -131,9 +135,11 @@ function auctionStateObj:adjustedValueMatrix(vMatrix)
 	for player_i = 1, self.players.count do
 		adjVMatrix[player_i] = {}
 		local M = self.bidSums[player_i]
+		local Mfactor = M*(self.players.count - 1)/self.players.count
 		
 		for player_j = 1, self.players.count do
-			adjVMatrix[player_i][player_j] = M*(1-2.71828^(-vMatrix[player_i][player_j] / M))
+			adjVMatrix[player_i][player_j] = M*vMatrix[player_i][player_j] 
+				/(Mfactor+vMatrix[player_i][player_j])
 		end
 	end
 	

@@ -14,15 +14,15 @@ function auctionStateObj:standardProcess()
 	
 	self:exhaustiveSwaps(true)
 	
-	print()
-	print(string.format("current score: %-6.2f", self:allocationScore()))
-	print("optimizing permutations")
-	local timeStarted = os.clock()
-	while(self:improveAllocationPermute(true)) do 
-		emu.frameadvance()
-		print("permute pass")
-	end
-	print(string.format("Time taken: %.2f seconds", os.clock() - timeStarted))
+	--print()
+	--print(string.format("current score: %-6.2f", self:allocationScore()))
+	--print("optimizing permutations")
+	--local timeStarted = os.clock()
+	--while(self:improveAllocationPermute(true)) do 
+	--	emu.frameadvance()
+	--	print("permute pass")
+	--end
+	--print(string.format("Time taken: %.2f seconds", os.clock() - timeStarted))
 		
 	print()
 	print("--Final teams--")

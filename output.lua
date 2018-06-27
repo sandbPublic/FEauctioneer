@@ -111,14 +111,16 @@ function auctionStateObj:printTeamValueMatrix()
 	local rawVMatrix = self:teamValueMatrix(self.bids)
 	local vMatrix = rawVMatrix
 	
-	local function printMatrix(header)
+	local function printMatrix(header, noSat)
 		print()
 		print(header)
 		local str = tenChar("")
 		for player_i = 1, self.players.count do
 			str = str .. tenChar(self.players[player_i])
 		end
-		str = str .. "satisfaction"
+		if not noSat then
+			str = str .. "satisfaction"
+		end
 		print(str)
 		
 		for player_i = 1, self.players.count do
@@ -126,7 +128,9 @@ function auctionStateObj:printTeamValueMatrix()
 			for player_j = 1, self.players.count do
 				str = str .. string.format("%6.2f     ", vMatrix[player_i][player_j])
 			end
-			str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
+			if not noSat then
+				str = str .. string.format("%6.2f     ", spiteValue(vMatrix[player_i],player_i))
+			end
 			print(str)
 		end
 	end
@@ -144,7 +148,7 @@ function auctionStateObj:printTeamValueMatrix()
 			vMatrix[player_i][player_j] = rawVMatrix[player_i][player_j] - vMatrix[player_i][player_j]
 		end
 	end
-	printMatrix("Net Adjustment Matrix (Raw - PI&RAdj matrices, satisfaction NA)")
+	printMatrix("Net Adjustment Matrix (Raw - PI&RAdj matrices)", true)
 	
 	vMatrix = self:adjustedValueMatrix()
 	local paretoPrices = self:paretoPrices(vMatrix)
