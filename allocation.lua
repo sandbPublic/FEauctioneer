@@ -92,7 +92,13 @@ function auctionStateObj:maxSatAssign()
 					if not self:fullTeam(player_i) then
 						local sat = spiteValue(bidArray, player_i)
 						
-						if maxSat < sat then
+						if (maxSat < sat) or 
+						-- if tied, break tie using playerID + unitID modulo
+						-- avoids assigning units in recruit order if all tied
+							(maxSat == sat and 
+							(unit_i + player_i) % self.players.count < 
+							(maxSat_unit_i + maxSat_player_i) % self.players.count)
+						then
 							maxSat = sat
 							maxSat_unit_i = unit_i
 							maxSat_player_i = player_i
@@ -184,80 +190,93 @@ function permgen (a, n)
 		end
 	end
 end
-print("permutations")
-permgen({1,2,3,4,5}, 5)
 
 -- todo allow for variable number of players
 function auctionStateObj:improveAllocationPermute(printV)	
 	local currentValue = self:allocationScore()
 	local permuted = false
 	
+	local permGenTable = {}
+	for player_i = 1, self.players.count do
+		permGenTable[player_i] = player_i
+	end
+	permgen(permGenTable, self.players.count)
+	
 	-- PxTeamsize array of unit_ids
 	local teams = self:teams()
 	local pUnits = {} -- units currently permuting
+	local teamIndexes = {} -- for correcting current units up for rotation to match new teams
 	
-	for team_A = 1, self.maxTeamSize do
-	pUnits[1] = teams[1][team_A]
-	print("A" .. team_A)
-	
-	for team_B = 1, self.maxTeamSize do
-	pUnits[2] = teams[2][team_B]
-	print(team_B)
-	
-	for team_C = 1, self.maxTeamSize do
-	pUnits[3] = teams[3][team_C]
-	emu.frameadvance()
-	
-	for team_D = 1, self.maxTeamSize do
-	pUnits[4] = teams[4][team_D]
-	
-	for team_E = 1, self.maxTeamSize do
-	pUnits[5] = teams[5][team_E]
-	
-		for perm_i = 1, perms.count do
-			for player_i = 1, self.players.count do
-				self.owner[pUnits[player_i]] = perms[perm_i][player_i]
-			end
-			
-			if currentValue < self:allocationScore() then
-				currentValue = self:allocationScore()
-				permuted = true
+	-- implicitly construct self.players.count loops over each team
+	local function recursive(player_i)
+		if player_i <= self.players.count then
+			for team_i = 1, self.maxTeamSize do
+				pUnits[player_i] = teams[player_i][team_i]
+				teamIndexes[player_i] = team_i
 				
-				if printV then
-					print()
-					for player_i = 1, self.players.count do
-						if player_i ~= perms[perm_i][player_i] then
-							print(string.format("Swapping: %d %-10.10s %-10.10s -> %d %-10.10s",
-								player_i,
-								self.players[player_i],
-								self.units[pUnits[player_i]][name_I], 
-								perms[perm_i][player_i],
-								self.players[perms[perm_i][player_i]]))
-						end
-					end
-					
-					print(string.format("new score: %-6.2f", self:allocationScore()))
+				if player_i == 1 then
+					print("A" .. teamIndexes[1])
+				elseif player_i == 2 then
+					print(" " .. teamIndexes[2])
+				elseif player_i == 3 then
+					emu.frameadvance()
 				end
 				
-				self:exhaustiveSwaps(printV)
-				teams = self:teams()
-				pUnits[1] = teams[1][team_A]
-				pUnits[2] = teams[2][team_B]
-				pUnits[3] = teams[3][team_C]
-				pUnits[4] = teams[4][team_D]
-				pUnits[5] = teams[5][team_E]
+				recursive(player_i + 1)
+			end
+		else -- base case, try all rotations of selected P units
+			local permutedThisLeaf = false
+		
+			for perm_i = 1, perms.count do
+				-- set to rotation
+				for player_i = 1, self.players.count do
+					self.owner[pUnits[player_i]] = perms[perm_i][player_i]
+				end
 				
-			else
+				if currentValue < self:allocationScore() then
+					currentValue = self:allocationScore()
+					permuted = true
+					permutedThisLeaf = true
+					
+					if printV then
+						print()
+						for player_i = 1, self.players.count do
+							
+							-- only print player that actually exchange in the rotation
+							if player_i ~= perms[perm_i][player_i] then
+								print(string.format("Swapping: %d %-10.10s %-10.10s -> %d %-10.10s",
+									player_i,
+									self.players[player_i],
+									self.units[pUnits[player_i]][name_I], 
+									perms[perm_i][player_i],
+									self.players[perms[perm_i][player_i]]))
+							end
+						end
+						
+						print(string.format("new score: %-6.2f", self:allocationScore()))
+					end
+					
+					self:exhaustiveSwaps(printV)
+					
+					-- reset to new teams
+					teams = self:teams()
+					
+					-- correct current units up for rotation to match new teams
+					for player_i = 1, self.players.count do
+						pUnits[player_i] = teams[player_i][teamIndexes[player_i]]
+					end
+				end
+			end
+			
+			if not permutedThisLeaf then -- unrotate
 				for player_i = 1, self.players.count do
 					self.owner[pUnits[player_i]] = player_i
 				end
 			end
 		end
 	end
-	end
-	end
-	end
-	end
+
+	recursive(1)
 	
 	if printV and not permuted then
 		print()
