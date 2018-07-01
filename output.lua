@@ -192,10 +192,12 @@ function auctionStateObj:printLatePromotionFactor()
 	for unit_i = 1, self.gameData.units.count do
 		local str = tenChar(self.gameData.units[unit_i].name)
 	
-		local itemReq_i = 1
-		while self.latePromoFactor[unit_i][itemReq_i] do
-			str = str .. string.format("%6.3f ", self.latePromoFactor[unit_i][itemReq_i])
-			itemReq_i = itemReq_i + 1
+		if self.gameData.units[unit_i].promoItem ~= 0 then
+			local itemReq_i = 1
+			while self.gameData.units[unit_i].LPFactor[itemReq_i] do
+				str = str .. string.format("%5.3f ", self.gameData.units[unit_i].LPFactor[itemReq_i])
+				itemReq_i = itemReq_i + 1
+			end
 		end
 		print(str)
 	end

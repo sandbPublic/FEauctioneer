@@ -28,7 +28,7 @@ end
 function P:initialize(version, bidFile, numPlayers)
 	-- load data
 	self.gameData = version
-	self.gameData:construct(self.players.count)
+	self.gameData:construct()
 	
 	-- load bids
 	self:readBids(bidFile, numPlayers)

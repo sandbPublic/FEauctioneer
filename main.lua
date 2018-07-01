@@ -2,7 +2,7 @@ require("auctionStateObj")
 require("pricing")
 require("output")
 require("allocation")
-require("gameData")
+require("gameDataObj")
 
 function auctionStateObj:standardProcess()
 	--self:printBids()

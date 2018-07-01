@@ -36,7 +36,7 @@ function gameDataObj:new()
 	return o
 end
 
-function gameDataObj:construct(playerCount)
+function gameDataObj:construct()
 	-- count chapters
 	self.chapters.count = 0
 	while self.chapters[self.chapters.count + 1] do	
@@ -73,7 +73,7 @@ function gameDataObj:construct(playerCount)
 	self.units.count = unit_i
 	
 	self:constructPICount()
-	self:constructLPFactor(self.units.count/playerCount)
+	self:constructLPFactor()
 end
 
 -- returns a #chapter x #itemTypes array of total items available
@@ -123,19 +123,24 @@ end
 -- earlier units in the same team will use the
 -- same item (assume team will not use more than
 -- one earth seal). if first unit, then PVF == 1
-function gameDataObj:constructLPFactor(teamSize)
+function gameDataObj:constructLPFactor()
+	local maxPredec = {}
+	for PIType_i = 0, promo_FC do
+		maxPredec[PIType_i] = 0
+	end
+
 	for unit_i = 1, self.units.count do
-		local function getEarliestPromoChapter(pIType, priorItemsNeeded)
-			if pIType == promo_NO then
+		local function getEarliestPromoChapter(PIType, priorItemsNeeded)
+			if PIType == promo_NO then
 				return self.units[unit_i].joinChapter
 			end
 			
 			for chapter_i = 1, self.chapters.count do
-				local itemSurplus = self.PICount[chapter_i][pIType] - priorItemsNeeded
+				local itemSurplus = self.PICount[chapter_i][PIType] - priorItemsNeeded
 			
 				if (itemSurplus > 0) or 
-					(itemSurplus + self.PICount[chapter_i][promo_ES] > 0 and pIType < promo_HS) then		
-					-- can use an earth seal if pIType < promo_HS
+					(itemSurplus + self.PICount[chapter_i][promo_ES] > 0 and PIType < promo_HS) then		
+					-- can use an earth seal if PIType < promo_HS
 					-- assume more than one eSeal will not be needed
 				
 					return math.max(chapter_i, self.units[unit_i].joinChapter)
@@ -150,12 +155,12 @@ function gameDataObj:constructLPFactor(teamSize)
 		-- for each number of predecessors possible,
 		-- compute the LatePromoFactor
 		
-		local pIType = self.units[unit_i].promoItem
-		local earliestPromoChapter = getEarliestPromoChapter(pIType, 0)
+		local PIType = self.units[unit_i].promoItem
+		local earliestPromoChapter = getEarliestPromoChapter(PIType, 0)
 		self.units[unit_i].LPFactor = {}
 		self.units[unit_i].LPFactor[0] = 1
-		for predec_i = 1, teamSize - 1 do
-			local underPromotedTime = getEarliestPromoChapter(pIType, predec_i) - earliestPromoChapter
+		for predec_i = 1, maxPredec[PIType] do
+			local underPromotedTime = getEarliestPromoChapter(PIType, predec_i) - earliestPromoChapter
 			
 			-- lose 1/8 more value each chapter underpromoted until value reaches 0
 			-- this method is arbitrary
@@ -168,6 +173,8 @@ function gameDataObj:constructLPFactor(teamSize)
 			-- scale to 1
 			self.units[unit_i].LPFactor[predec_i] = 1 - (lostValue / self.units[unit_i].availability)
 		end
+		
+		maxPredec[PIType] = maxPredec[PIType] + 1
 	end
 end
 
