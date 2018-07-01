@@ -1,11 +1,6 @@
 local P = {}
 auctionStateObj = P
 
--- using indexes instead of named table fields allows for more organized gameData
-name_I = 1
-chapter_I = 2
-promo_I = 3
-
 --todo store vMatrix etc, only recompute when swaps occur?
 function P:new()
 	local o = {}
@@ -14,23 +9,17 @@ function P:new()
 		
 	o.players = {} -- strings
 	o.players.count = 0
-	o.units = {} -- names, chapter, promo_item
-	o.units.count = 0
+	
+	o.gameData = {}
 	
 	o.bids = {} -- PxU array of numbers
 	o.bidSums = {} -- P array, used for redundancy adjusted team values
 	
+	o.Mmatrix = {} -- PxCh array, bid sums up to chapter Ch
+	
 	o.owner = {} -- U array of player ids.
 	o.maxTeamSize = 0
 	o.teamSizes = {} -- for allocations
-	
-	o.latePromoFactor = {}
-	-- U x maxTeamSize-1
-	-- for each unit, array of how the bid values 
-	-- should be scaled down depending on how many
-	-- earlier units in the same team will use the
-	-- same item (assume team will not use more than
-	-- one earth seal). if first unit, then PVF == 1
 	
 	return o
 end
@@ -38,19 +27,13 @@ end
 -- takes in a table from gameData
 function P:initialize(version, bidFile, numPlayers)
 	-- load data
-	self.units = {}
-	self.units.count = 0
-	while version[self.units.count+1] do
-		self.units.count = self.units.count + 1		
-		self.units[self.units.count] = version[self.units.count]
-	end
+	self.gameData = version
+	self.gameData:construct(self.players.count)
 	
 	-- load bids
 	self:readBids(bidFile, numPlayers)
 	
-	self.maxTeamSize = self.units.count/self.players.count
-	
-	self.latePromoFactor = version.LPFactor
+	self.maxTeamSize = self.gameData.units.count/self.players.count
 end
 
 function P:readBids(bidFile, numPlayers)
@@ -74,7 +57,7 @@ function P:readBids(bidFile, numPlayers)
 	end
 	
 	local bidTotal = {}
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		bidTotal[unit_i] = 0
 		for player_i = 1, self.players.count do
 			if player_i <= numPlayers then
@@ -100,7 +83,7 @@ function P:teams()
 		teams[player_i] = {}
 		local teamNextSlot = 1
 		
-		for unit_i = 1, self.units.count do
+		for unit_i = 1, self.gameData.units.count do
 			if self.owner[unit_i] == player_i then	
 				teams[player_i][teamNextSlot] = unit_i
 				teamNextSlot = teamNextSlot + 1
@@ -109,72 +92,6 @@ function P:teams()
 	end
 	
 	return teams
-end
-
--- gaps between drafted units appearing, player.count X (teamSize + 1) array
--- values normalized
--- assumes units are sorted by chapter join time
-function P:chapterGaps(printV)
-	local ret = {}
-	local totalGap = self.units[self.units.count][chapter_I] - self.units[1][chapter_I]
-	
-	if printV then
-		print()
-		print("Chapter gaps")
-	end
-	for player_i = 1, self.players.count do
-		if printV then 
-			print() 
-			print(self.players[player_i]) 
-		end
-		
-		ret[player_i] = {}
-		local prevChapter = self.units[1][chapter_I] -- first chapter a unit can be available
-		local gap_i = 1
-		local gap = 0
-		local normalized = 0
-		for unit_i = 1, self.units.count do
-			if self.owner[unit_i] == player_i then
-			
-				gap = self.units[unit_i][chapter_I] - prevChapter
-				normalized = gap/totalGap
-				
-				if printV then
-					print(string.format("%-10.10s %2d %2d/%2d=%5.3f %5.3f", 
-						self.units[unit_i][name_I], self.units[unit_i][chapter_I], gap, totalGap,
-						normalized, normalized*normalized))
-				end				
-				ret[player_i][gap_i] = normalized
-				prevChapter = self.units[unit_i][chapter_I]
-				gap_i = gap_i + 1
-			end	
-		end
-		
-		-- gap to end
-		gap = self.units[self.units.count][chapter_I] - prevChapter
-		normalized = gap/totalGap
-		
-		ret[player_i][gap_i] = normalized
-		
-		if printV then
-			print(string.format("-end-      %2d %2d/%2d=%5.3f %5.3f",
-				self.units[self.units.count][chapter_I], gap, totalGap,
-				normalized, normalized*normalized))
-		
-			local sumOfSq = 0
-			for gap_i2 = 1, gap_i do
-				sumOfSq = sumOfSq + ret[player_i][gap_i2]*ret[player_i][gap_i2]
-			end
-			print(string.format("sum of squares:           %5.3f", sumOfSq))
-		end
-	end
-	
-	if printV then
-		print()
-		print("total " .. tostring(sumOfSquares(ret)))
-	end
-	
-	return ret
 end
 
 -- promo items

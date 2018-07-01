@@ -29,15 +29,15 @@ function auctionStateObj:adjustedBids()
 			--get num predecessors with same promo type (competitors)
 			local numCompetitors = 0
 			for member_j = 1, member_i - 1 do
-				if self.units[teams[player_i][member_j]][3] == 
-					self.units[member][3] then
+				if self.gameData.units[teams[player_i][member_j]].promoItem == 
+					self.gameData.units[member].promoItem then
 					numCompetitors = numCompetitors + 1
 				end
 			end
 			
 			for player_i = 1, self.players.count do
 				adjBids[player_i][member] = self.bids[player_i][member] 
-					* self.latePromoFactor[member][numCompetitors]
+					* self.gameData.units[member].LPFactor[numCompetitors]
 			end
 		end
 	end
@@ -56,9 +56,9 @@ function auctionStateObj:teamPopPerChapter(lastChapter)
 		currPop[player_i] = 0
 	end
 	
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		currPop[self.owner[unit_i]] = currPop[self.owner[unit_i]] + 1
-		local chapter = self.units[unit_i][chapter_I]
+		local chapter = self.gameData.units[unit_i].joinChapter
 	
 		tPPC[chapter] = {}
 		for player_i = 1, self.players.count do
@@ -90,7 +90,7 @@ function auctionStateObj:teamValueMatrix(bids)
 		end
 	end
 
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		local net = 0
 	
 		player_j = self.owner[unit_i]

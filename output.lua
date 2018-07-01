@@ -15,8 +15,8 @@ function auctionStateObj:printBids(bids, str)
 	end
 	print(str)
 	
-	for unit_i = 1, self.units.count do
-		str = tenChar(self.units[unit_i][name_I])
+	for unit_i = 1, self.gameData.units.count do
+		str = tenChar(self.gameData.units[unit_i].name)
 		for player_i = 1, self.players.count do
 			str = str ..  tenChar(string.format(" %5.2f", bids[player_i][unit_i]))
 		end
@@ -48,10 +48,10 @@ function auctionStateObj:printTeams()
 		
 		for teamMember_i = 1, self.maxTeamSize do
 			local unit_i = teams[player_i][teamMember_i]
-			local str = tenChar(self.units[unit_i][name_I])
+			local str = tenChar(self.gameData.units[unit_i].name)
 		
 			str = str .. string.format("%5.2f  ", self.bids[player_i][unit_i]) ..
-				self.promoStrings[self.units[unit_i][promo_I]] .. "  "
+				self.promoStrings[self.gameData.units[unit_i].promoItem] .. "  "
 			
 			if self.bids[player_i][unit_i] ~= adjBids[player_i][unit_i] then
 				str = str .. string.format("%5.2f  ", adjBids[player_i][unit_i])
@@ -69,7 +69,7 @@ function auctionStateObj:findLargeBidComparisonDeviations(threshold)
 		return averageBid[unit_i] - averageBid[unit_j]
 	end
 	
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		averageBid[unit_i] = 0
 		for player_i = 1, self.players.count do
 			averageBid[unit_i] = averageBid[unit_i] + self.bids[player_i][unit_i]
@@ -80,8 +80,8 @@ function auctionStateObj:findLargeBidComparisonDeviations(threshold)
 	local deviationCount = 0
 	local misorderingCount = 0
 	for player_i = 1, self.players.count do
-		for unit_i = 1, self.units.count do
-			for unit_j = unit_i+1, self.units.count do
+		for unit_i = 1, self.gameData.units.count do
+			for unit_j = unit_i+1, self.gameData.units.count do
 				local deviation = (self.bids[player_i][unit_i] - self.bids[player_i][unit_j]) 
 					- avgBidDif(unit_i, unit_j)
 				
@@ -94,7 +94,9 @@ function auctionStateObj:findLargeBidComparisonDeviations(threshold)
 					end
 					
 					print(string.format("%03d preference deviation noted, comparing: %-10.10s %-10.10s", 
-						deviationCount, self.units[unit_i][name_I], self.units[unit_j][name_I]))
+						deviationCount, 
+						self.gameData.units[unit_i].name, 
+						self.gameData.units[unit_j].name))
 					print(string.format("Average: %05.2f  %-10.10s: %05.2f  Deviation: %05.2f", 
 						avgBidDif(unit_i, unit_j), self.players[player_i], 
 						(self.bids[player_i][unit_i] - self.bids[player_i][unit_j]),
@@ -187,8 +189,8 @@ function auctionStateObj:printLatePromotionFactor()
 	print()
 	print("Late Promotion Factors")
 
-	for unit_i = 1, self.units.count do
-		local str = tenChar(self.units[unit_i][1])
+	for unit_i = 1, self.gameData.units.count do
+		local str = tenChar(self.gameData.units[unit_i].name)
 	
 		local itemReq_i = 1
 		while self.latePromoFactor[unit_i][itemReq_i] do

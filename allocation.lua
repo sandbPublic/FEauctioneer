@@ -1,10 +1,10 @@
 function auctionStateObj:clearAssign()
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		self.owner[unit_i] = 0
 	end
 	
 	-- index 0 refers to unassigned units
-	self.teamSizes[0] = self.units.count
+	self.teamSizes[0] = self.gameData.units.count
 	
 	for player_i = 1, self.players.count do
 		self.teamSizes[player_i] = 0
@@ -27,7 +27,7 @@ end
 function auctionStateObj:randomAssign()
 	self:clearAssign()
 	
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		local player_i = math.random(self.players.count)
 		while self:fullTeam(player_i) do
 			player_i = player_i + 1
@@ -45,7 +45,7 @@ function auctionStateObj:moduloAssign(startOffset)
 
 	startOffset = startOffset or 0
 
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		local player_i = ((unit_i - 1 + startOffset) % self.players.count) + 1
 		-- player_i(1) = 1, player_i(self.players.count) = self.players.count, not 0
 	
@@ -57,7 +57,7 @@ end
 function auctionStateObj:quickAssign()
 	self:clearAssign()
 	
-	for unit_i = 1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
 		local maxBid = -1
 		for player_i = 1, self.players.count do
 			if not self:fullTeam(player_i) then 
@@ -81,7 +81,7 @@ function auctionStateObj:maxSatAssign()
 		local maxSat_player_i = 0
 	
 		--find max sat gain assignment remaining and assign
-		for unit_i = 1, self.units.count do
+		for unit_i = 1, self.gameData.units.count do
 			if self.owner[unit_i] == 0 then
 				local bidArray = {} -- self.bids indexes first by player, so won't work for spiteValue
 				for player_i = 1, self.players.count do
@@ -118,8 +118,8 @@ function auctionStateObj:improveAllocationSwaps(printV)
 	local currentValue = self:allocationScore()
 	local swapped = false
 	
-	for unit_i = 1, self.units.count do
-		for unit_j = unit_i+1, self.units.count do
+	for unit_i = 1, self.gameData.units.count do
+		for unit_j = unit_i+1, self.gameData.units.count do
 			-- attempt swap
 			self.owner[unit_i], self.owner[unit_j] = self.owner[unit_j], self.owner[unit_i]
 			
@@ -132,8 +132,8 @@ function auctionStateObj:improveAllocationSwaps(printV)
 				
 					-- use name of owner before swap
 					print(string.format("Swapping: %-10.10s %-10.10s <-> %-10.10s %-10.10s",
-						self.players[self.owner[unit_j]], self.units[unit_i][name_I],
-						self.players[self.owner[unit_i]], self.units[unit_j][name_I]))
+						self.players[self.owner[unit_j]], self.gameData.units[unit_i].name,
+						self.players[self.owner[unit_i]], self.gameData.units[unit_j].name))
 						
 					print(string.format("new score: %-6.2f", self:allocationScore()))
 				end
@@ -247,7 +247,7 @@ function auctionStateObj:improveAllocationPermute(printV)
 								print(string.format("Swapping: %d %-10.10s %-10.10s -> %d %-10.10s",
 									player_i,
 									self.players[player_i],
-									self.units[pUnits[player_i]][name_I], 
+									self.gameData.units[pUnits[player_i]].name, 
 									perms[perm_i][player_i],
 									self.players[perms[perm_i][player_i]]))
 							end
