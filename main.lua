@@ -1,8 +1,8 @@
 require("auctionStateObj")
+require("gameDataObj")
 require("pricing")
 require("output")
 require("allocation")
-require("gameDataObj")
 
 function auctionStateObj:standardProcess()
 	--self:printBids()
@@ -42,6 +42,9 @@ FE7auction2.players.count = 5
 
 print("FE7auction2")
 FE7auction2:initialize(gameDataObj.sevenHNM, "FE7auction2.bids.txt")
---FE7auction2:printLatePromotionFactor()
+
 
 FE7auction2:standardProcess()
+
+FE7auction2:printXC_Matrix()
+FE7auction2:printXC_Matrix(FE7auction2:createVC_Matrix(), "V")

@@ -53,11 +53,12 @@ function gameDataObj:construct()
 		self.units[unit_i].joinChapter = self.unitData[unit_i][2]
 		self.units[unit_i].promoItem = self.unitData[unit_i][3]
 		
-		if not self.units[unit_i].lastChapter then
+		if not self.unitData[unit_i].lastChapter then
 			self.units[unit_i].lastChapter = self.chapters.count
+		else
+			self.units[unit_i].lastChapter = self.unitData[unit_i].lastChapter
 		end
-		self.units[unit_i].availability = 
-			self.units[unit_i].lastChapter -
+		self.units[unit_i].availability = self.units[unit_i].lastChapter -
 			self.units[unit_i].joinChapter + 1
 		
 		self.M_denoms[unit_i] = {}
@@ -347,35 +348,37 @@ P.sevenHNM.unitData = {
 	--{"Athos", 30, promo_NO}
 }
 
+P.sevenHNM.unitData[9].lastChapter = 12 -- split Marcus
+
 P.sevenHNM.chapters = {
-"11	 Another Journey",
-"12	 Birds of a Feather",
-"13	 In Search of Truth",
+"11  Another Journey",
+"12  Birds of a Feather",
+"13  In Search of Truth",
 "13x The Peddler Merlinus",
-"14	 False Friends",
-"15	 Talons Alight",
-"16	 Noble Lady of Caelin",
-"17	 Whereabouts Unknown",
+"14  False Friends",
+"15  Talons Alight",
+"16  Noble Lady of Caelin",
+"17  Whereabouts Unknown",
 "17x The Port of Badon",
-"18	 Pirate Ship",
-"19	 The Dread Isle",
+"18  Pirate Ship",
+"19  The Dread Isle",
 "19x Imprisoner of Magic",
-"20	 Dragon's Gate",
-"21	 New Resolve",
-"22	 Kinship's Bond",
-"23	 Living Legend",
+"20  Dragon's Gate",
+"21  New Resolve",
+"22  Kinship's Bond",
+"23  Living Legend",
 "23x Genesis",
-"24	 Four-Fanged Offense",
-"25	 Crazed Beast",
-"26	 Unfulfilled Heart",
-"27	 Pale Flower of Darkness",
-"28	 Battle Before Dawn",
+"24  Four-Fanged Offense",
+"25  Crazed Beast",
+"26  Unfulfilled Heart",
+"27  Pale Flower of Darkness",
+"28  Battle Before Dawn",
 "28x Night of Farewells",
-"29	 Cog of Destiny",
-"30	 The Berserker",
-"31	 Sands of Time",
+"29  Cog of Destiny",
+"30  The Berserker",
+"31  Sands of Time",
 "31x Battle Preparations",
-"32	 Victory or Death",
+"32  Victory or Death",
 "32x The Value of Life",
 "33  Light"
 }
@@ -502,4 +505,4 @@ P.eightHM = {
 	{"Syrene", 17, promo_NO}
 }
 
-return gameData
+return gameDataObj

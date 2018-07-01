@@ -15,7 +15,7 @@ function P:new()
 	o.bids = {} -- PxU array of numbers
 	o.bidSums = {} -- P array, used for redundancy adjusted team values
 	
-	o.Mmatrix = {} -- PxCh array, bid sums up to chapter Ch
+	o.MC_Matrix = {} -- PxCh array, M values (currently bid sums) by chapter
 	
 	o.owner = {} -- U array of player ids.
 	o.maxTeamSize = 0
@@ -34,6 +34,8 @@ function P:initialize(version, bidFile, numPlayers)
 	self:readBids(bidFile, numPlayers)
 	
 	self.maxTeamSize = self.gameData.units.count/self.players.count
+	
+	self.MC_Matrix = self:createMC_Matrix()
 end
 
 function P:readBids(bidFile, numPlayers)
@@ -78,24 +80,20 @@ end
 -- PxTeamsize array of unit_ids
 function P:teams()
 	local teams = {}
-	
+	local next_i = {}
 	for player_i = 1, self.players.count do
 		teams[player_i] = {}
-		local teamNextSlot = 1
-		
-		for unit_i = 1, self.gameData.units.count do
-			if self.owner[unit_i] == player_i then	
-				teams[player_i][teamNextSlot] = unit_i
-				teamNextSlot = teamNextSlot + 1
-			end
-		end
+		next_i[player_i] = 1
+	end
+	
+	for unit_i = 1, self.gameData.units.count do
+		local owner = self.owner[unit_i]
+	
+		teams[owner][next_i[owner]] = unit_i
+		next_i[owner] = next_i[owner] + 1
 	end
 	
 	return teams
 end
-
--- promo items
-P.promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC", "eSeal"}
-P.promoStrings[0] = "None "
 
 return auctionStateObj

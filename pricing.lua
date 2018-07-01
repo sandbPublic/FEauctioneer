@@ -103,6 +103,55 @@ function auctionStateObj:teamValueMatrix(bids)
 	return vMatrix
 end
 
+-- PxCh array of M totals by chapter
+function auctionStateObj:createMC_Matrix()
+	local MC_Matrix = {}
+	
+	for player_i = 1, self.players.count do
+		MC_Matrix[player_i] = {}
+		for chapter_i = 1, self.gameData.chapters.count do
+			MC_Matrix[player_i][chapter_i] = 0
+		end
+	
+		for unit_i = 1, self.gameData.units.count do
+			for chapter_i = self.gameData.units[unit_i].joinChapter, 
+				self.gameData.units[unit_i].lastChapter do
+				
+				MC_Matrix[player_i][chapter_i] = MC_Matrix[player_i][chapter_i] + 
+					self.bids[player_i][unit_i] / self.gameData.units[unit_i].availability
+			end
+		end
+	end
+	
+	return MC_Matrix
+end
+
+-- PxCh array of team values by chapter
+function auctionStateObj:createVC_Matrix()
+	local VC_Matrix = {}	
+	local teams = self:teams()
+	
+	for player_i = 1, self.players.count do
+		VC_Matrix[player_i] = {}
+		for chapter_i = 1, self.gameData.chapters.count do
+			VC_Matrix[player_i][chapter_i] = 0
+		end
+	
+		for team_i = 1, self.maxTeamSize do
+			local unit = teams[player_i][team_i]
+		
+			for chapter_i = self.gameData.units[unit].joinChapter, 
+				self.gameData.units[unit].lastChapter do
+				
+				VC_Matrix[player_i][chapter_i] = VC_Matrix[player_i][chapter_i] + 
+					self.bids[player_i][unit] / self.gameData.units[unit].availability
+			end
+		end
+	end
+	
+	return VC_Matrix
+end
+
 --[[
 -- reduce team value to compensate for redundancies
 -- for example:

@@ -1,5 +1,8 @@
+local promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC", "eSeal"}
+promoStrings[0] = "None "
+
 -- format a string into 10 chars with an extra space
-function tenChar(str)
+local function tenChar(str)
 	return string.format("%-10.10s ", str)
 end
 
@@ -51,7 +54,7 @@ function auctionStateObj:printTeams()
 			local str = tenChar(self.gameData.units[unit_i].name)
 		
 			str = str .. string.format("%5.2f  ", self.bids[player_i][unit_i]) ..
-				self.promoStrings[self.gameData.units[unit_i].promoItem] .. "  "
+				promoStrings[self.gameData.units[unit_i].promoItem] .. "  "
 			
 			if self.bids[player_i][unit_i] ~= adjBids[player_i][unit_i] then
 				str = str .. string.format("%5.2f  ", adjBids[player_i][unit_i])
@@ -203,6 +206,56 @@ function auctionStateObj:printLatePromotionFactor()
 	end
 end
 
+function gameDataObj:printM_denoms()
+	print("M denoms")
+	
+	local str = tenChar("Chapter")
+	for chapter_i = 1, self.gameData.chapters.count do
+		str = str .. string.format(" %.3s", self.gameData.chapters[chapter_i])
+	end
+	print(str)
+	
+	for unit_i = 1, self.units.count do
+		str = tenChar(self.units[unit_i].name)
+		
+		for chapter_i = 1, self.gameData.chapters.count do
+			str = str .. string.format("% .2d ", self.gameData.M_denoms[unit_i][chapter_i])
+		end
+		print(str)
+	end
+end
+
+-- print M, V, or R(V,M)C_Matrix
+function auctionStateObj:printXC_Matrix(XC_Matrix, vStr)
+	vStr = vStr or "M"
+	XC_Matrix = XC_Matrix or self:createMC_Matrix()
+	
+	print()
+	print(vStr .. " values by chapter")
+	
+	local sumCheck = {}
+	local str = "    "
+	for player_i = 1, self.players.count do
+		str = str .. tenChar(self.players[player_i])
+		sumCheck[player_i] = 0
+	end
+	print(str)
+	
+	for chapter_i = 1, self.gameData.chapters.count do
+		str = string.format("%-.3s ", self.gameData.chapters[chapter_i])
+		for player_i = 1, self.players.count do
+			str = str .. string.format("  %7.5f  ", XC_Matrix[player_i][chapter_i])
+			sumCheck[player_i] = sumCheck[player_i] + XC_Matrix[player_i][chapter_i]
+		end
+		print(str)
+	end
+	str = "sum "
+	for player_i = 1, self.players.count do
+		str = str .. string.format("%9.5f  ", sumCheck[player_i])
+	end
+	print(str)
+end
+
 function auctionStateObj:printTeamPopPerChapter(tPPC)
 	tPPC = tPPC or self:teamPopPerChapter(29)
 
@@ -226,3 +279,4 @@ function auctionStateObj:printTeamPopPerChapter(tPPC)
 		chapter_i = chapter_i + 1
 	end
 end
+
