@@ -27,12 +27,7 @@ function gameDataObj:new()
 	o.chapters.count = 0
 	
 	-- #chapter x #itemTypes array of total items available
-	o.PICount = {}
-	
-	-- #units x #chapters array of 0 if unit unavailable, else availability
-	-- used in player chapter-wise M construction
-	o.M_denoms = {}
-	
+	o.PICount = {}	
 	return o
 end
 
@@ -61,15 +56,6 @@ function gameDataObj:construct()
 		self.units[unit_i].availability = self.units[unit_i].lastChapter -
 			self.units[unit_i].joinChapter + 1
 		
-		self.M_denoms[unit_i] = {}
-		for chapter_i = 1, self.chapters.count do
-			if (self.units[unit_i].joinChapter <= chapter_i) and
-				(self.units[unit_i].lastChapter >= chapter_i) then
-				self.M_denoms[unit_i][chapter_i] = self.units[unit_i].availability
-			else
-				self.M_denoms[unit_i][chapter_i] = 0
-			end
-		end
 	end
 	self.units.count = unit_i
 	

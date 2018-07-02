@@ -13,6 +13,38 @@ function spiteValue(array, i)
 	return array[i] - spite/(j-2) -- j-2 == #opponents
 end
 
+--[[
+-- reduce team value to compensate for redundancies
+-- for example:
+-- if the worst team can complete a chapter in 3 turns,
+-- then no team can save more than 2 turns. nevertheless,
+-- there may be three or more units that each individually
+-- save one turn, yet all together cannot save 3 turns.
+-- there is some max number of turns savable from the 
+-- worst teams turncount, and we seek to reduce the value
+-- of teams in relation to this max and the teams' unadjusted
+-- values i.e. bid sums
+
+-- the function f(value) = adjusted value should have the 
+-- following properties:
+-- f(0) = 0
+-- f(infinity) -> M (max)
+-- f(v) <= v
+-- f(v) = Mv/(M+v) satisfies this
+-- and has some mathematic motivation (ie not entirely arbitrary)
+-- for now, let each player's bid sum = max for that player
+
+-- also, should anchor to f(M/#p) = M/#p, not f(v) <= v
+-- thus f(v) = Mv/(M(p-1)/p+v)
+]]--
+local function R(V, M, PFactor)
+	if M == 0 then
+		return 0	
+	end
+	
+	return V*M/(V+M*PFactor)
+end
+
 -- reduce value of teams with promo item redundancies
 function auctionStateObj:adjustedBids()
 	local adjBids = {}
@@ -43,39 +75,6 @@ function auctionStateObj:adjustedBids()
 	end
 	
 	return adjBids
-end
-
--- team roster size per each chapter
-function auctionStateObj:teamPopPerChapter(lastChapter)
-	local tPPC = {}
-	tPPC[0] = {}
-	
-	local currPop = {}
-	for player_i = 1, self.players.count do
-		tPPC[0][player_i] = 0
-		currPop[player_i] = 0
-	end
-	
-	for unit_i = 1, self.gameData.units.count do
-		currPop[self.owner[unit_i]] = currPop[self.owner[unit_i]] + 1
-		local chapter = self.gameData.units[unit_i].joinChapter
-	
-		tPPC[chapter] = {}
-		for player_i = 1, self.players.count do
-			tPPC[chapter][player_i] = currPop[player_i]
-		end
-	end
-	
-	for chapter_i = 1, lastChapter do
-		if not tPPC[chapter_i] then
-			tPPC[chapter_i] = {}
-			for player_i = 1, self.players.count do
-				tPPC[chapter_i][player_i] = tPPC[chapter_i-1][player_i]
-			end
-		end
-	end
-	
-	return tPPC
 end
 
 -- the vMatrix shows how player i values player j's team for all i,j
@@ -126,25 +125,29 @@ function auctionStateObj:createMC_Matrix()
 	return MC_Matrix
 end
 
--- PxCh array of team values by chapter
+-- PxPxCh array of subjective team values by chapter
 function auctionStateObj:createVC_Matrix()
 	local VC_Matrix = {}	
 	local teams = self:teams()
 	
-	for player_i = 1, self.players.count do
+	for player_i = 1, self.players.count do -- player i's perspective (bids)
 		VC_Matrix[player_i] = {}
-		for chapter_i = 1, self.gameData.chapters.count do
-			VC_Matrix[player_i][chapter_i] = 0
-		end
-	
-		for team_i = 1, self.maxTeamSize do
-			local unit = teams[player_i][team_i]
+		for player_j = 1, self.players.count do -- player j's team
+			VC_Matrix[player_i][player_j] = {}
+			
+			for chapter_i = 1, self.gameData.chapters.count do
+				VC_Matrix[player_i][player_j][chapter_i] = 0
+			end
 		
-			for chapter_i = self.gameData.units[unit].joinChapter, 
-				self.gameData.units[unit].lastChapter do
-				
-				VC_Matrix[player_i][chapter_i] = VC_Matrix[player_i][chapter_i] + 
-					self.bids[player_i][unit] / self.gameData.units[unit].availability
+			for team_i = 1, self.maxTeamSize do
+				local unit = teams[player_j][team_i]
+			
+				for chapter_i = self.gameData.units[unit].joinChapter, 
+					self.gameData.units[unit].lastChapter do
+					
+					VC_Matrix[player_i][player_j][chapter_i] = VC_Matrix[player_i][player_j][chapter_i] + 
+						self.bids[player_i][unit] / self.gameData.units[unit].availability
+				end
 			end
 		end
 	end
@@ -152,43 +155,71 @@ function auctionStateObj:createVC_Matrix()
 	return VC_Matrix
 end
 
---[[
--- reduce team value to compensate for redundancies
--- for example:
--- if the worst team can complete a chapter in 3 turns,
--- then no team can save more than 2 turns. nevertheless,
--- there may be three or more units that each individually
--- save one turn, yet all together cannot save 3 turns.
--- there is some max number of turns savable from the 
--- worst teams turncount, and we seek to reduce the value
--- of teams in relation to this max and the teams' unadjusted
--- values i.e. bid sums
+-- PxPxCh array of R values by chapter
+function auctionStateObj:createRC_Matrix(VC_Matrix, MC_Matrix)
+	VC_Matrix = VC_Matrix or self:createVC_Matrix()
+	MC_Matrix = MC_Matrix or self.MC_Matrix
 
--- the function f(value) = adjusted value should have the 
--- following properties:
--- f(0) = 0
--- f(infinity) -> M (max)
--- f(v) <= v
--- f(v) = Mv/(M+v) satisfies this
--- and has some mathematic motivation (ie not entirely arbitrary)
--- for now, let each player's bid sum = max for that player
+	local RC_Matrix = {}
+	
+	for player_i = 1, self.players.count do -- player i's perspective (M)
+		RC_Matrix[player_i] = {}
+		for player_j = 1, self.players.count do -- player j's team
+			RC_Matrix[player_i][player_j] = {}
+			RC_Matrix[player_i][player_j].sum = 0
+			
+			for chapter_i = 1, self.gameData.chapters.count do
+				RC_Matrix[player_i][player_j][chapter_i] = 
+					R(VC_Matrix[player_i][player_j][chapter_i], 
+					MC_Matrix[player_i][chapter_i], 
+					self.players.count)
+					
+				RC_Matrix[player_i][player_j].sum = RC_Matrix[player_i][player_j].sum +
+					RC_Matrix[player_i][player_j][chapter_i]
+			end
+		end
+	end
+	
+	return RC_Matrix
+end
 
--- also, should anchor to f(M/#p) = M/#p, not f(v) <= v
--- thus f(v) = Mv/(M(p-1)/p+v)
-]]--
+-- after computing V(i,j), feeds into R()
 function auctionStateObj:adjustedValueMatrix(vMatrix)
 	vMatrix = vMatrix or self:teamValueMatrix()
 
 	local adjVMatrix = {}
+	local PFactor = 1 - 1/self.players.count
 	
 	for player_i = 1, self.players.count do
 		adjVMatrix[player_i] = {}
-		local M = self.bidSums[player_i]
-		local Mfactor = M*(self.players.count - 1)/self.players.count
-		
 		for player_j = 1, self.players.count do
-			adjVMatrix[player_i][player_j] = M*vMatrix[player_i][player_j] 
-				/(Mfactor+vMatrix[player_i][player_j])
+			adjVMatrix[player_i][player_j] = 
+				R(vMatrix[player_i][player_j], self.bidSums[player_i], PFactor)
+		end
+	end
+	
+	return adjVMatrix
+end
+
+-- split V int VC, run VC and MC through R(), then sum together
+-- eg sum(R(V_C)), not R(sum(V_C))
+function auctionStateObj:adjustedVC_Sum_Matrix()
+	local adjVMatrix = {}
+	
+	VC_Matrix = self:createVC_Matrix()
+	local PFactor = 1 - 1/self.players.count
+	
+	for player_i = 1, self.players.count do -- player i's perspective (M)
+		adjVMatrix[player_i] = {}
+		for player_j = 1, self.players.count do -- player j's team
+			adjVMatrix[player_i][player_j] = 0
+			
+			for chapter_i = 1, self.gameData.chapters.count do	
+				adjVMatrix[player_i][player_j] = adjVMatrix[player_i][player_j] +
+					R(VC_Matrix[player_i][player_j][chapter_i], 
+					self.MC_Matrix[player_i][chapter_i], 
+					PFactor)
+			end
 		end
 	end
 	
@@ -199,7 +230,7 @@ end
 -- A's satisfaction equals Handicapped Team Value - average opponent HTV
 -- (from A's subjective perspective)
 function auctionStateObj:paretoPrices(vMatrix)	
-	vMatrix = vMatrix or self:adjustedValueMatrix()
+	vMatrix = vMatrix or self:adjustedVC_Sum_Matrix()
 	
 	-- select A | Comp.V_A is minimal to automatically generate positive prices
 	local spiteValues = {}
@@ -225,7 +256,7 @@ end
 
 -- satisfaction is proportional to net spiteValue
 function auctionStateObj:allocationScore(vMatrix)
-	vMatrix = vMatrix or self:adjustedValueMatrix()
+	vMatrix = vMatrix or self:adjustedVC_Sum_Matrix()
 	
 	local netSpiteValue = 0	
 	for player_i = 1, self.players.count do

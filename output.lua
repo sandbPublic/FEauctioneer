@@ -142,20 +142,9 @@ function auctionStateObj:printTeamValueMatrix()
 
 	printMatrix("Raw Team Value Matrix")
 	
-	vMatrix = self:teamValueMatrix()
-	printMatrix("Promo Item Adjusted Team Value Matrix")
+	vMatrix = self:adjustedVC_Sum_Matrix()
+	printMatrix("R-by-chapter Team Value Matrix")
 	
-	vMatrix = self:adjustedValueMatrix()
-	printMatrix("Promo Item & Redundancy Adjusted Team Value Matrix")
-		
-	for player_i = 1, self.players.count do
-		for player_j = 1, self.players.count do
-			vMatrix[player_i][player_j] = rawVMatrix[player_i][player_j] - vMatrix[player_i][player_j]
-		end
-	end
-	printMatrix("Net Adjustment Matrix (Raw - PI&RAdj matrices)", true)
-	
-	vMatrix = self:adjustedValueMatrix()
 	local paretoPrices = self:paretoPrices(vMatrix)
 	print()
 	local str = "HANDICAPS  "
@@ -206,25 +195,6 @@ function auctionStateObj:printLatePromotionFactor()
 	end
 end
 
-function gameDataObj:printM_denoms()
-	print("M denoms")
-	
-	local str = tenChar("Chapter")
-	for chapter_i = 1, self.gameData.chapters.count do
-		str = str .. string.format(" %.3s", self.gameData.chapters[chapter_i])
-	end
-	print(str)
-	
-	for unit_i = 1, self.units.count do
-		str = tenChar(self.units[unit_i].name)
-		
-		for chapter_i = 1, self.gameData.chapters.count do
-			str = str .. string.format("% .2d ", self.gameData.M_denoms[unit_i][chapter_i])
-		end
-		print(str)
-	end
-end
-
 -- print M, V, or R(V,M)C_Matrix
 function auctionStateObj:printXC_Matrix(XC_Matrix, vStr)
 	vStr = vStr or "M"
@@ -254,29 +224,5 @@ function auctionStateObj:printXC_Matrix(XC_Matrix, vStr)
 		str = str .. string.format("%9.5f  ", sumCheck[player_i])
 	end
 	print(str)
-end
-
-function auctionStateObj:printTeamPopPerChapter(tPPC)
-	tPPC = tPPC or self:teamPopPerChapter(29)
-
-	print()
-	print("Team Population Per Chapter")
-
-	local str = tenChar("")
-	for player_i = 1, self.players.count do
-		str = str .. tenChar(self.players[player_i])
-	end
-	print(str)
-	
-	local chapter_i = 0
-	while tPPC[chapter_i] do
-		local str = tenChar(chapter_i)
-		for player_i = 1, self.players.count do
-			str = str .. tenChar(tPPC[chapter_i][player_i])
-		end
-		print(str)
-	
-		chapter_i = chapter_i + 1
-	end
 end
 

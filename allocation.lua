@@ -167,17 +167,48 @@ end
 
 perms = {}
 perms.count = 0
-function permgen (a, n)
-	if n == 0 then
-		perms.count = perms.count + 1
-		perms[perms.count] = {}
+nonPerms = {} -- check identity, swap, disconnected rotations
+-- these are not needed because identity changes nothing, swaps are already done in O(n^2),
+-- and net+ disconnected rotations can be accomplished by multiple net+ connected rotations
+nonPerms.count = 0
+function permgen (a, n) -- a is an arrangement
+	if not a.size then
+		a.size = n
+	end 
+
+	if n == 0 then		
+		-- check if permutation is a swap or identity
+		local changedNumbers = 0
+		local disconnected = false
+		for a_i = 1, a.size do
+			if a[a_i] ~= a_i then
+				changedNumbers = changedNumbers + 1
+				
+				-- check if disconnected rotation pair
+				-- disconnected pair if any number links to self in 2, but not 1 step
+				if a[a[a_i]] == a_i then
+					disconnected = true
+				end
+			end
+		end	
 		
-		local a_i = 1
-		while a[a_i] do
-			perms[perms.count][a_i] = a[a_i]
-			a_i = a_i + 1
-		end		
-	else
+		if changedNumbers > 2 and not disconnected then
+			perms.count = perms.count + 1
+			perms[perms.count] = {}
+			
+			for a_i = 1, a.size do
+				perms[perms.count][a_i] = a[a_i]
+			end
+		else
+			nonPerms.count = nonPerms.count + 1
+			nonPerms[nonPerms.count] = {}
+			
+			for a_i = 1, a.size do
+				nonPerms[nonPerms.count][a_i] = a[a_i]
+			end
+		end
+		
+	else -- recursive case
 		for i = 1, n do
 			-- put i-th element as the last one
 			a[n], a[i] = a[i], a[n]
@@ -192,7 +223,9 @@ function permgen (a, n)
 end
 
 -- todo allow for variable number of players
-function auctionStateObj:improveAllocationPermute(printV)	
+function auctionStateObj:improveAllocationPermute(printV)
+	local timeStarted = os.clock()
+
 	local currentValue = self:allocationScore()
 	local permuted = false
 	
@@ -207,6 +240,12 @@ function auctionStateObj:improveAllocationPermute(printV)
 	local pUnits = {} -- units currently permuting
 	local teamIndexes = {} -- for correcting current units up for rotation to match new teams
 	
+	local indentation = {}
+	indentation[1] = " "
+	for player_i = 2, self.players.count do
+		indentation[player_i] = indentation[player_i-1] .. " "
+	end
+	
 	-- implicitly construct self.players.count loops over each team
 	local function recursive(player_i)
 		if player_i <= self.players.count then
@@ -214,11 +253,11 @@ function auctionStateObj:improveAllocationPermute(printV)
 				pUnits[player_i] = teams[player_i][team_i]
 				teamIndexes[player_i] = team_i
 				
-				if player_i == 1 then
-					print("A" .. teamIndexes[1])
-				elseif player_i == 2 then
-					print(" " .. teamIndexes[2])
-				elseif player_i == 3 then
+				if player_i + 1 < self.players.count then
+					print(indentation[player_i] ..player_i .. indentation[player_i] .. 
+						teamIndexes[player_i] .. "/" .. self.maxTeamSize .. 
+						string.format(" Time taken: %.2f seconds", os.clock() - timeStarted))
+				elseif player_i + 1 == self.players.count then
 					emu.frameadvance()
 				end
 				
