@@ -165,49 +165,79 @@ function auctionStateObj:exhaustiveSwaps(printV)
 	end
 end
 
+-- takes a permutation and counts how many loops there are
+-- "loops" of size one are not counted
+-- used to eliminate permutations that contain multiple loops
+-- because they are redundant with the permutations corresponding
+-- to each individual loop
+-- also returns lowestLoopMember
+local function loopCount(perm, size)
+	local lowestLoopMember = {} -- identify loops this way
+	
+	local function nextLoopMember(i)
+		if not lowestLoopMember[i] then
+			lowestLoopMember[i] = i -- start loop
+		else
+			if lowestLoopMember[i] == i then
+				return -- reached start of loop
+			end
+		end
+		
+		lowestLoopMember[perm[i]] = lowestLoopMember[i]	
+		nextLoopMember(perm[i])
+	end
+	
+	for i = 1, size do
+		nextLoopMember(i)
+	end
+	
+	local loopDetected = {} -- detects unique loops
+	local loopingMembers = size
+	for i = 1, size do
+		if lowestLoopMember[i] ~= i then
+			loopDetected[lowestLoopMember[i]] = true
+		end
+		
+		if perm[i] == i then
+			loopingMembers = loopingMembers - 1
+		end
+	end
+	
+	local loopCount = 0
+	for i = 1, size do
+		if loopDetected[i] then
+			loopCount = loopCount + 1
+		end
+	end
+	
+	return loopCount, loopingMembers, lowestLoopMember
+end
+
 perms = {}
 perms.count = 0
 nonPerms = {} -- check identity, swap, disconnected rotations
 -- these are not needed because identity changes nothing, swaps are already done in O(n^2),
 -- and net+ disconnected rotations can be accomplished by multiple net+ connected rotations
 nonPerms.count = 0
-function permgen (a, n) -- a is an arrangement
+local function permgen (a, n) -- a is an arrangement
 	if not a.size then
 		a.size = n
 	end 
 
-	if n == 0 then		
+	if n == 0 then
+		local listToUpdate = nonPerms
+	
 		-- check if permutation is a swap or identity
-		local changedNumbers = 0
-		local disconnected = false
-		for a_i = 1, a.size do
-			if a[a_i] ~= a_i then
-				changedNumbers = changedNumbers + 1
-				
-				-- check if disconnected rotation pair
-				-- disconnected pair if any number links to self in 2, but not 1 step
-				if a[a[a_i]] == a_i then
-					disconnected = true
-				end
-			end
-		end	
-		
-		if changedNumbers > 2 and not disconnected then
-			perms.count = perms.count + 1
-			perms[perms.count] = {}
-			
-			for a_i = 1, a.size do
-				perms[perms.count][a_i] = a[a_i]
-			end
-		else
-			nonPerms.count = nonPerms.count + 1
-			nonPerms[nonPerms.count] = {}
-			
-			for a_i = 1, a.size do
-				nonPerms[nonPerms.count][a_i] = a[a_i]
-			end
+		local count, loopingMembers, lLM = loopCount(a, a.size)
+		if count == 1 and loopingMembers > 2 then -- exactly one loop of size > 2
+			listToUpdate = perms
 		end
 		
+		listToUpdate.count = listToUpdate.count + 1
+		listToUpdate[listToUpdate.count] = {}
+		for a_i = 1, a.size do
+			listToUpdate[listToUpdate.count][a_i] = a[a_i]
+		end
 	else -- recursive case
 		for i = 1, n do
 			-- put i-th element as the last one
@@ -219,6 +249,23 @@ function permgen (a, n) -- a is an arrangement
 			-- restore i-th element
 			a[n], a[i] = a[i], a[n]
 		end
+	end
+end
+
+local function printPerms(perms)
+	local size = 0
+	while perms[1][size+1] do
+		size = size+1
+	end
+
+	print(perms.count)
+	for perm_i = 1, perms.count do
+		local count
+		local lLM
+		
+		count, lMem, lLM = loopCount(perms[perm_i], size)
+		
+		print(tostring(perms[perm_i]) .. " " .. count .. " " .. lMem .. " " .. tostring(lLM))
 	end
 end
 
@@ -256,7 +303,7 @@ function auctionStateObj:improveAllocationPermute(printV)
 				if player_i + 1 < self.players.count then
 					print(indentation[player_i] ..player_i .. indentation[player_i] .. 
 						teamIndexes[player_i] .. "/" .. self.maxTeamSize .. 
-						string.format(" Time taken: %.2f seconds", os.clock() - timeStarted))
+						string.format(" Time taken: %.2f minutes", (os.clock() - timeStarted)/60))
 				elseif player_i + 1 == self.players.count then
 					emu.frameadvance()
 				end

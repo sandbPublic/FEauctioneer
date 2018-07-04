@@ -102,7 +102,7 @@ function auctionStateObj:teamValueMatrix(bids)
 	return vMatrix
 end
 
--- PxCh array of M totals by chapter
+-- PxCh array of M totals by chapter, includes sums
 function auctionStateObj:createMC_Matrix()
 	local MC_Matrix = {}
 	
@@ -111,13 +111,17 @@ function auctionStateObj:createMC_Matrix()
 		for chapter_i = 1, self.gameData.chapters.count do
 			MC_Matrix[player_i][chapter_i] = 0
 		end
+		MC_Matrix[player_i].sum = 0
 	
 		for unit_i = 1, self.gameData.units.count do
 			for chapter_i = self.gameData.units[unit_i].joinChapter, 
 				self.gameData.units[unit_i].lastChapter do
 				
-				MC_Matrix[player_i][chapter_i] = MC_Matrix[player_i][chapter_i] + 
-					self.bids[player_i][unit_i] / self.gameData.units[unit_i].availability
+				local unitValueThisChapter = self.bids[player_i][unit_i] / 
+					self.gameData.units[unit_i].availability
+				
+				MC_Matrix[player_i][chapter_i] = MC_Matrix[player_i][chapter_i] + unitValueThisChapter
+				MC_Matrix[player_i].sum = MC_Matrix[player_i].sum + unitValueThisChapter
 			end
 		end
 	end
@@ -141,12 +145,13 @@ function auctionStateObj:createVC_Matrix()
 		
 			for team_i = 1, self.maxTeamSize do
 				local unit = teams[player_j][team_i]
-			
+				local incValue = self.bids[player_i][unit] / self.gameData.units[unit].availability
+				
 				for chapter_i = self.gameData.units[unit].joinChapter, 
 					self.gameData.units[unit].lastChapter do
 					
-					VC_Matrix[player_i][player_j][chapter_i] = VC_Matrix[player_i][player_j][chapter_i] + 
-						self.bids[player_i][unit] / self.gameData.units[unit].availability
+					VC_Matrix[player_i][player_j][chapter_i] = 
+						VC_Matrix[player_i][player_j][chapter_i] + incValue
 				end
 			end
 		end

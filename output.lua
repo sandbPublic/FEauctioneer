@@ -152,8 +152,9 @@ function auctionStateObj:printTeamValueMatrix()
 		str = str .. string.format("%6.2f     ", paretoPrices[player_i])
 	end
 	print(str)
-	
+		
 	-- now subtract relevant prices and print again
+	vMatrix = self:adjustedVC_Sum_Matrix()
 	for player_i = 1, self.players.count do
 		for player_j = 1, self.players.count do
 			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] - paretoPrices[player_j]
@@ -198,7 +199,7 @@ end
 -- print M, V, or R(V,M)C_Matrix
 function auctionStateObj:printXC_Matrix(XC_Matrix, vStr)
 	vStr = vStr or "M"
-	XC_Matrix = XC_Matrix or self:createMC_Matrix()
+	XC_Matrix = XC_Matrix or self.MC_Matrix
 	
 	print()
 	print(vStr .. " values by chapter")
