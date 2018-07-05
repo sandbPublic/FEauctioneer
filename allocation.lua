@@ -131,9 +131,10 @@ function auctionStateObj:improveAllocationSwaps(printV)
 					print()
 				
 					-- use name of owner before swap
-					print(string.format("Swapping: %-10.10s %-10.10s <-> %-10.10s %-10.10s",
-						self.players[self.owner[unit_j]], self.gameData.units[unit_i].name,
-						self.players[self.owner[unit_i]], self.gameData.units[unit_j].name))
+					print(string.format("Swapping: %-10.10s %-21.21s %-10.10s",
+						self.players[self.owner[unit_j]], 
+						self.gameData.units[unit_i].name .. " <-> " .. self.gameData.units[unit_j].name,
+						self.players[self.owner[unit_i]]))
 						
 					print(string.format("new score: %-6.2f", self:allocationScore()))
 				end
@@ -269,7 +270,6 @@ local function printPerms(perms)
 	end
 end
 
--- todo allow for variable number of players
 function auctionStateObj:improveAllocationPermute(printV)
 	local timeStarted = os.clock()
 
@@ -302,7 +302,7 @@ function auctionStateObj:improveAllocationPermute(printV)
 				
 				if player_i + 1 < self.players.count then
 					print(indentation[player_i] ..player_i .. indentation[player_i] .. 
-						teamIndexes[player_i] .. "/" .. self.maxTeamSize .. 
+						teamIndexes[player_i]-1 .. "/" .. self.maxTeamSize .. 
 						string.format(" Time taken: %.2f minutes", (os.clock() - timeStarted)/60))
 				elseif player_i + 1 == self.players.count then
 					emu.frameadvance()

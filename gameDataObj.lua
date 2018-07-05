@@ -7,10 +7,15 @@ local promo_HC = 2 -- hero crest
 local promo_OB = 3 -- orion's bolt
 local promo_EW = 4 -- elysian whip
 local promo_GR = 5 -- guiding ring
-local promo_HS = 6 -- heaven seal
-local promo_OS = 7 -- ocean seal
-local promo_FC = 8 -- fell contract
-local promo_ES = 9 -- earth seal, item only
+local promo_O8 = 6 -- ocean seal in FE8
+local promo_ES = 7 -- earth seal, item only, leave room to insert ocean seal in FE8
+local promo_OS = 8 -- ocean seal
+local promo_FC = 9 -- fell contract
+local promo_HS =10 -- heaven seal
+
+P.promoStrings = {"Kgt C", "Hero ",  "oBolt", "eWhip", "gRing", "Ocean", 
+"eSeal", "Ocean", "FellC", "Heven"} 
+P.promoStrings[0] = "     "
 
 function gameDataObj:new()
 	local o = {}
@@ -72,7 +77,7 @@ function gameDataObj:constructPICount()
 	self.PICount = {}
 	self.PICount[0] = {}	
 	
-	for itemT_i = promo_KC, promo_ES do
+	for itemT_i = promo_KC, promo_HS do
 		runningTotal[itemT_i] = 0
 		self.PICount[0][itemT_i] = 0 -- first chapter, no promo items
 	end
@@ -88,7 +93,7 @@ function gameDataObj:constructPICount()
 		
 		-- insert running total into count for this chapter
 		self.PICount[chapter] = {}
-		for itemT_i = promo_KC, promo_ES do
+		for itemT_i = promo_KC, promo_HS do
 			self.PICount[chapter][itemT_i] = runningTotal[itemT_i]
 		end
 		
@@ -100,7 +105,7 @@ function gameDataObj:constructPICount()
 		if not self.PICount[chapter_i] then
 			self.PICount[chapter_i] = {}
 			
-			for itemT_i = promo_KC, promo_ES do
+			for itemT_i = promo_KC, promo_HS do
 				self.PICount[chapter_i][itemT_i] = self.PICount[chapter_i - 1][itemT_i]
 			end
 		end
@@ -115,7 +120,7 @@ end
 -- one earth seal). if first unit, then PVF == 1
 function gameDataObj:constructLPFactor()
 	local maxPredec = {}
-	for PIType_i = 0, promo_FC do
+	for PIType_i = 0, promo_HS do
 		maxPredec[PIType_i] = 0
 	end
 
@@ -129,8 +134,8 @@ function gameDataObj:constructLPFactor()
 				local itemSurplus = self.PICount[chapter_i][PIType] - priorItemsNeeded
 			
 				if (itemSurplus > 0) or 
-					(itemSurplus + self.PICount[chapter_i][promo_ES] > 0 and PIType < promo_HS) then		
-					-- can use an earth seal if PIType < promo_HS
+					(itemSurplus + self.PICount[chapter_i][promo_ES] > 0 and PIType < promo_ES) then		
+					-- can use an earth seal if PIType < promo_ES
 					-- assume more than one eSeal will not be needed
 				
 					return math.max(chapter_i, self.units[unit_i].joinChapter)
@@ -385,6 +390,8 @@ P.sixNM.pIAcqTime = {
 -- FE7 Hector Normal Mode
 P.sevenHNM = gameDataObj:new()
 
+P.sevenHNMold = gameDataObj:new()
+
 P.sevenHNM.unitData = {
 	--chapter
 	--11 / 1
@@ -460,6 +467,80 @@ P.sevenHNM.unitData = {
 	--{"Athos",		30, promo_NO}
 }
 
+P.sevenHNMold.unitData = {
+	--chapter
+	--11 / 1
+	--12 / 2
+	{"Matthew",		2, promo_FC}, -- free for 11/1
+	{"Serra",		2, promo_GR},
+	{"Oswin",		2, promo_KC},
+	{"Eliwood",		2, promo_HS},
+	{"Lowen",		2, promo_KC},
+	{"Rebecca",		2, promo_OB},
+	{"Dorcas",		2, promo_HC},
+	{"Bartre&Karla",	2, promo_HC},
+	--{"Marcus<=19x",	2, promo_NO},
+	--13 / 3
+	{"Guy",			3, promo_HC},
+	--13x/ 4
+	--14 / 5
+	{"Erk",			5, promo_GR},
+	
+	{"Priscilla",	6, promo_GR}, -- can't really help in join chapter
+	--15 / 6
+	--16 / 7
+	{"Florina",		7, promo_EW},
+	
+	{"Lyn",			8, promo_HS}, -- free during join chapter
+	{"Sain",		8, promo_KC},
+	{"Kent",		8, promo_KC},
+	{"Wil",			8, promo_OB},
+	--17 / 8
+	{"Raven",		8, promo_HC}, -- can they help during join chapter?
+	{"Lucius",		8, promo_GR},
+	--17x/ 9
+	{"Canas",		9, promo_GR},
+	--18 /10
+	--19 /11
+	{"Dart",		11, promo_OS},
+	{"Fiora",		11, promo_EW},
+	--19x/12
+	--20 /13
+	--{"Marcus>=20",	13, promo_NO},
+	{"Legault",		13, promo_FC}, -- can't really help during join chapter?	
+	--21 /14
+	--22 /15
+	{"Isadora",		15, promo_NO},
+	{"Heath",		15, promo_EW},
+	{"Rath",		15, promo_OB},
+	--23 /16
+	{"Hawkeye",		16, promo_NO},
+	--23x/17
+	--24 /18
+	--{"Wallace/Geitz",	18, promo_NO},
+	--25 /19
+	{"Farina",		19, promo_EW},
+	--26 /20
+	{"Pent",		20, promo_NO},
+	{"Louise",		20, promo_NO},
+	--27 /21
+	--{"Harken/Karel",	20, promo_NO},
+	--28 /22
+	{"Nino",		22, promo_GR},
+	--28x/23
+	{"Jaffar",		23, promo_NO},
+	--29 /24
+	{"Vaida",		24, promo_NO},
+	--30 /25
+	--31 /26
+	--31x/27
+	--32 /28
+	--{"Renault",		28, promo_NO}
+	--32x/29
+	--33 /30
+	--{"Athos",		30, promo_NO}
+}
+
 P.sevenHNM.unitData[9].lastChapter = 12 -- split Marcus
 
 P.sevenHNM.chapters = {
@@ -494,6 +575,8 @@ P.sevenHNM.chapters = {
 	"32x The Value of Life",
 	"33  Light"
 }
+
+P.sevenHNMold.chapters = P.sevenHNM.chapters
 
 P.sevenHNM.pIAcqTime = {
 	--chapter 
@@ -576,6 +659,8 @@ P.sevenHNM.pIAcqTime = {
 	--33 /30
 }
 
+P.sevenHNMold.pIAcqTime = P.sevenHNM.pIAcqTime
+
 -- FE8 Hard Mode, assume Eirika route?
 P.eightHM = gameDataObj:new()
 
@@ -589,11 +674,11 @@ P.eightHM.unitData = {
 	-- 2/ 3
 	{"Vanessa",		3, promo_EW},
 	{"Moulder",		3, promo_GR},
-	{"Ross",		3, promo_OS}, -- can promo_HC
+	{"Ross",		3, promo_O8}, -- can promo_HC
 	{"Garcia",		3, promo_HC},
 	-- 3/ 4
 	{"Neimi",		4, promo_OB},
-	{"Colm",		4, promo_OS},
+	{"Colm",		4, promo_O8},
 	-- 4/ 5
 	{"Artur",		5, promo_GR},
 	{"Lute",		5, promo_GR},
@@ -626,7 +711,7 @@ P.eightHM.unitData = {
 	--14/16
 	{"Rennac",		16, promo_NO},
 	--15/17
-	{"2nd Lord",	17, promo_HS}, -- free Ch5x? Ch8?
+	--{"2nd Lord",	17, promo_HS}, -- free Ch5x? Ch8?
 	{"Duessel",		17, promo_NO}, -- 10/12 -5 eph
 	{"Knoll",		17, promo_GR},
 	--16/18
@@ -685,7 +770,7 @@ P.eightHM.pIAcqTime = {
 	
 	{11, promo_EW, 1}, -- chest
 	-- 9/11
-	{11, promo_OS, 1}, -- a pirate, b chest
+	{11, promo_O8, 1}, -- a pirate, b chest
 	
 	--10/12	
 	--{12, promo_HC, 1}, -- b ONLY, village

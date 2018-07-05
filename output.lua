@@ -1,5 +1,4 @@
-local promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC", "eSeal"}
-promoStrings[0] = "     "
+require("gameDataObj")
 
 -- format a string into 10 chars with an extra space
 local function tenChar(str)
@@ -56,7 +55,7 @@ function auctionStateObj:printTeams()
 				str = str .. "       "
 			end
 		end
-		str = str .. " item"
+		str = str .. " item   chapter"
 		print(str)
 		
 		for teamMember_i = 1, self.maxTeamSize do
@@ -70,7 +69,11 @@ function auctionStateObj:printTeams()
 					str = str .. string.format(" %5.2f ", self.bids[player_j][unit_i])
 				end
 			end
-			str = str .. " " .. promoStrings[self.gameData.units[unit_i].promoItem]
+			str = str .. " " .. gameDataObj.promoStrings[self.gameData.units[unit_i].promoItem]
+				.. "  " .. self.gameData.chapters[self.gameData.units[unit_i].joinChapter]
+				
+			str = string.format("%.70s", str)
+			
 			print(str)
 		end
 	end
@@ -155,7 +158,7 @@ function auctionStateObj:printTeamValueMatrix()
 	printMatrix("Raw Team Value Matrix")
 	
 	vMatrix = self:adjustedVC_Sum_Matrix()
-	printMatrix("R-by-chapter Team Value Matrix")
+	printMatrix("R-by-chapter Adjusted Team Value Matrix")
 	
 	local paretoPrices = self:paretoPrices(vMatrix)
 	print()
@@ -166,13 +169,12 @@ function auctionStateObj:printTeamValueMatrix()
 	print(str)
 		
 	-- now subtract relevant prices and print again
-	vMatrix = self:adjustedVC_Sum_Matrix()
 	for player_i = 1, self.players.count do
 		for player_j = 1, self.players.count do
 			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] - paretoPrices[player_j]
 		end
 	end
-	printMatrix("Team Value - Handicap Matrix")
+	printMatrix("Adjusted Team Value - Handicap Matrix")
 	
 	-- subtract max from each row and print again
 	for player_i = 1, self.players.count do

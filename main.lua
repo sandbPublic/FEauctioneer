@@ -5,15 +5,15 @@ require("output")
 require("allocation")
 
 function auctionStateObj:standardProcess()
-	--self:printBids()
+	self:printBids()
 		
 	self:maxSatAssign()
 	print()
 	print("Initial unoptimized teams")
 	
-	--self:printTeams()
+	self:printTeams()
 	
-	self:exhaustiveSwaps()
+	self:exhaustiveSwaps(true)
 	
 	--[[
 	print()
@@ -34,12 +34,31 @@ function auctionStateObj:standardProcess()
 	print("END")
 end
 
+--[[
+local FE8auction1 = auctionStateObj:new()
+FE8auction1.players = {"Wargrave", "Eggclipse", "Horace", "Carmine"}
+FE8auction1.players.count = 4
+
+print("FE8auction1")
+FE8auction1:initialize(gameDataObj.eightHM, "FE8auction1.bids.txt")
+--FE8auction1:printLatePromotionFactor()
+FE8auction1:standardProcess()
+]]
+--[[
+local FE7auction1 = auctionStateObj:new()
+FE7auction1.players = {"Wargrave", "Carmine", "Horace", "Baldrick"}
+FE7auction1.players.count = 4
+
+print("FE7auction1")
+FE7auction1:initialize(gameDataObj.sevenHNMold, "FE7auction1.bids.txt")
+--FE7auction1:findLargeBidComparisonDeviations(5)
+FE7auction1:standardProcess()
+]]
+
 local FE7auction2 = auctionStateObj:new()
 FE7auction2.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}
 FE7auction2.players.count = 5
 
 print("FE7auction2")
-FE7auction2:initialize(gameDataObj.sevenHNM, "FE7auction2brittletest.bids.txt")
---FE7auction2:printLatePromotionFactor()
---FE7auction2:printXC_Matrix()
+FE7auction2:initialize(gameDataObj.sevenHNM, "FE7auction2.bids.txt")
 FE7auction2:standardProcess()
