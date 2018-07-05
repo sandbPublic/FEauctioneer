@@ -13,7 +13,7 @@ function auctionStateObj:standardProcess()
 	
 	--self:printTeams()
 	
-	self:exhaustiveSwaps(true)
+	self:exhaustiveSwaps()
 	
 	--[[
 	print()
@@ -23,7 +23,7 @@ function auctionStateObj:standardProcess()
 		emu.frameadvance()
 		print("permute pass")
 	end
-	]]--
+	]]
 	
 	print()
 	print("--Final teams--")
@@ -39,5 +39,7 @@ FE7auction2.players = {"Wargrave", "Athena", "Sturm", "amg", "GentleWind"}
 FE7auction2.players.count = 5
 
 print("FE7auction2")
-FE7auction2:initialize(gameDataObj.sevenHNM, "FE7auction2.bids.txt")
+FE7auction2:initialize(gameDataObj.sevenHNM, "FE7auction2brittletest.bids.txt")
+--FE7auction2:printLatePromotionFactor()
+--FE7auction2:printXC_Matrix()
 FE7auction2:standardProcess()

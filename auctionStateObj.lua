@@ -21,6 +21,7 @@ function P:new()
 	o.maxTeamSize = 0
 	o.teamSizes = {} -- for allocations
 	
+	o.maxUSat = 0 -- for anti-brittle adjustments
 	return o
 end
 
@@ -36,6 +37,8 @@ function P:initialize(version, bidFile, numPlayers)
 	self.maxTeamSize = self.gameData.units.count/self.players.count
 	
 	self.MC_Matrix = self:createMC_Matrix()
+	
+	self.maxUSat = self:maxUnrestrictedSat()
 end
 
 function P:readBids(bidFile, numPlayers)

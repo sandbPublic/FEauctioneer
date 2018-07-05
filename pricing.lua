@@ -13,6 +13,28 @@ function spiteValue(array, i)
 	return array[i] - spite/(j-2) -- j-2 == #opponents
 end
 
+function auctionStateObj:maxUnrestrictedSat()
+	local maxUnSat = 0
+	
+	for unit_i = 1, self.gameData.units.count do
+		local uBids = {}
+		local maxBid = 0
+		local maxBid_i = 1
+		for player_i = 1, self.players.count do
+			uBids[player_i] = self.bids[player_i][unit_i]
+			
+			if maxBid < uBids[player_i] then
+				maxBid = uBids[player_i]
+				maxBid_i = player_i
+			end
+		end
+		
+		maxUnSat = maxUnSat + spiteValue(uBids, maxBid_i)
+	end
+	
+	return maxUnSat
+end
+
 --[[
 -- reduce team value to compensate for redundancies
 -- for example:
@@ -45,42 +67,9 @@ local function R(V, M, PFactor)
 	return V*M/(V+M*PFactor)
 end
 
--- reduce value of teams with promo item redundancies
-function auctionStateObj:adjustedBids()
-	local adjBids = {}
-	for player_i = 1, self.players.count do
-		adjBids[player_i] = {}
-	end
-	
-	local teams = self:teams()
-		
-	for player_i = 1, self.players.count do
-		for member_i = 1, self.maxTeamSize do
-			local member = teams[player_i][member_i]
-		
-			--get num predecessors with same promo type (competitors)
-			local numCompetitors = 0
-			for member_j = 1, member_i - 1 do
-				if self.gameData.units[teams[player_i][member_j]].promoItem == 
-					self.gameData.units[member].promoItem then
-					numCompetitors = numCompetitors + 1
-				end
-			end
-			
-			for player_i = 1, self.players.count do
-				adjBids[player_i][member] = self.bids[player_i][member] 
-					* self.gameData.units[member].LPFactor[numCompetitors]
-			end
-		end
-	end
-	
-	return adjBids
-end
-
 -- the vMatrix shows how player i values player j's team for all i,j
-function auctionStateObj:teamValueMatrix(bids)
-	bids = bids or self:adjustedBids()
-
+-- raw, unadjusted values
+function auctionStateObj:teamValueMatrix()
 	local vMatrix = {}
 	for player_i = 1, self.players.count do
 		vMatrix[player_i] = {}
@@ -95,7 +84,7 @@ function auctionStateObj:teamValueMatrix(bids)
 		player_j = self.owner[unit_i]
 		for player_i = 1, self.players.count do
 			vMatrix[player_i][player_j] = vMatrix[player_i][player_j] 
-				+ bids[player_i][unit_i]
+				+ self.bids[player_i][unit_i]
 		end
 	end
 	
@@ -103,6 +92,7 @@ function auctionStateObj:teamValueMatrix(bids)
 end
 
 -- PxCh array of M totals by chapter, includes sums
+-- adjusted for promo items
 function auctionStateObj:createMC_Matrix()
 	local MC_Matrix = {}
 	
@@ -114,11 +104,18 @@ function auctionStateObj:createMC_Matrix()
 		MC_Matrix[player_i].sum = 0
 	
 		for unit_i = 1, self.gameData.units.count do
+			local LPF = self.gameData.units[unit_i].LPFactor
+			local unitValue = self.bids[player_i][unit_i] / 
+					self.gameData.units[unit_i].availability
+			
 			for chapter_i = self.gameData.units[unit_i].joinChapter, 
 				self.gameData.units[unit_i].lastChapter do
 				
-				local unitValueThisChapter = self.bids[player_i][unit_i] / 
-					self.gameData.units[unit_i].availability
+				local unitValueThisChapter = unitValue
+				-- adjust for maximal promo item competition
+				if LPF.adjusted then
+					unitValueThisChapter = unitValueThisChapter * LPF[LPF.count][chapter_i]
+				end
 				
 				MC_Matrix[player_i][chapter_i] = MC_Matrix[player_i][chapter_i] + unitValueThisChapter
 				MC_Matrix[player_i].sum = MC_Matrix[player_i].sum + unitValueThisChapter
@@ -147,11 +144,31 @@ function auctionStateObj:createVC_Matrix()
 				local unit = teams[player_j][team_i]
 				local incValue = self.bids[player_i][unit] / self.gameData.units[unit].availability
 				
-				for chapter_i = self.gameData.units[unit].joinChapter, 
-					self.gameData.units[unit].lastChapter do
-					
-					VC_Matrix[player_i][player_j][chapter_i] = 
-						VC_Matrix[player_i][player_j][chapter_i] + incValue
+				local LPF = self.gameData.units[unit].LPFactor
+				
+				local predec = 0
+				if LPF.adjusted then
+					for team_j = 1, team_i - 1 do
+						if self.gameData:sharePI(teams[player_j][team_j], unit) then
+							predec = predec + 1
+						end
+					end
+				end
+				
+				if predec > 0 then -- only check once to reduce innermost loop
+					for chapter_i = self.gameData.units[unit].joinChapter, 
+						self.gameData.units[unit].lastChapter do
+						
+						VC_Matrix[player_i][player_j][chapter_i] = 
+							VC_Matrix[player_i][player_j][chapter_i] + incValue*LPF[predec][chapter_i]
+					end
+				else
+					for chapter_i = self.gameData.units[unit].joinChapter, 
+						self.gameData.units[unit].lastChapter do
+						
+						VC_Matrix[player_i][player_j][chapter_i] = 
+							VC_Matrix[player_i][player_j][chapter_i] + incValue
+					end
 				end
 			end
 		end
@@ -188,7 +205,7 @@ function auctionStateObj:createRC_Matrix(VC_Matrix, MC_Matrix)
 	return RC_Matrix
 end
 
--- after computing V(i,j), feeds into R()
+-- after computing raw V(i,j), feeds into R(), not chapter-wise
 function auctionStateObj:adjustedValueMatrix(vMatrix)
 	vMatrix = vMatrix or self:teamValueMatrix()
 
@@ -260,12 +277,16 @@ function auctionStateObj:paretoPrices(vMatrix)
 end
 
 -- satisfaction is proportional to net spiteValue
+-- anti-brittle feature, add some fraction of V(i,i)
+-- accept some loss of satisfaction for a large gain in team quality
+-- helps avoid promo redundancies, highly redundant teams, etc
 function auctionStateObj:allocationScore(vMatrix)
 	vMatrix = vMatrix or self:adjustedVC_Sum_Matrix()
 	
 	local netSpiteValue = 0	
 	for player_i = 1, self.players.count do
-		netSpiteValue = netSpiteValue + spiteValue(vMatrix[player_i],player_i)
+		netSpiteValue = netSpiteValue + spiteValue(vMatrix[player_i],player_i) 
+			+ vMatrix[player_i][player_i] / (self.maxUSat * 50)
 	end
 	
 	return netSpiteValue

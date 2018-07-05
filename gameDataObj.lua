@@ -22,7 +22,6 @@ function gameDataObj:new()
 	-- units[1].name is more intuitive than units.names[1]	
 	o.units.count = 0
 	
-	-- index from 1
 	o.chapters = {}
 	o.chapters.count = 0
 	
@@ -61,6 +60,10 @@ function gameDataObj:construct()
 	
 	self:constructPICount()
 	self:constructLPFactor()
+end
+
+function gameDataObj:sharePI(unit_i, unit_j)
+	return self.units[unit_i].promoItem == self.units[unit_j].promoItem
 end
 
 -- returns a #chapter x #itemTypes array of total items available
@@ -104,7 +107,7 @@ function gameDataObj:constructPICount()
 	end
 end
 
--- U x maxTeamSize
+-- U x maxPredec x chaptersAvailable
 -- for each unit, array of how the bid values 
 -- should be scaled down depending on how many
 -- earlier units in the same team will use the
@@ -138,34 +141,50 @@ function gameDataObj:constructLPFactor()
 		end
 		
 		-- find earliestPromoChapter if after join time
-		-- ignore any levels needed to promote (for now?)
+		-- ignore any level-ups needed to promote (for now?)
 		-- for each number of predecessors possible,
 		-- compute the LatePromoFactor
 		
 		local PIType = self.units[unit_i].promoItem
-		local earliestPromoChapter = getEarliestPromoChapter(PIType, 0)
+		local earliestPromoChapter = {}
+		
 		self.units[unit_i].LPFactor = {}
-		self.units[unit_i].LPFactor[0] = 1
-		for predec_i = 1, maxPredec[PIType] do
-			local underPromotedTime = getEarliestPromoChapter(PIType, predec_i) - earliestPromoChapter
+		self.units[unit_i].LPFactor.adjusted = false
+		self.units[unit_i].LPFactor.count = maxPredec[PIType]
+		
+		for predec_i = 0, maxPredec[PIType] do
+			earliestPromoChapter[predec_i] = getEarliestPromoChapter(PIType, predec_i)
 			
-			-- lose 1/8 more value each chapter underpromoted until value reaches 0
-			-- this method is arbitrary
-			
-			local lostValue = 0 -- in units of "chapters available"
-			for i = 1, underPromotedTime do
-				lostValue = lostValue + math.min(1, i/8)
+			if earliestPromoChapter[predec_i] > earliestPromoChapter[0] then
+				self.units[unit_i].LPFactor.adjusted = true
 			end
-			
-			-- scale to 1
-			self.units[unit_i].LPFactor[predec_i] = 1 - (lostValue / self.units[unit_i].availability)
 		end
 		
-		maxPredec[PIType] = maxPredec[PIType] + 1
+		if self.units[unit_i].LPFactor.adjusted then
+		for predec_i = 1, maxPredec[PIType] do
+			self.units[unit_i].LPFactor[predec_i] = {}
+			
+				for chapter_i = self.units[unit_i].joinChapter, self.units[unit_i].lastChapter do
+					if (earliestPromoChapter[0] <= chapter_i) 
+						and (chapter_i < earliestPromoChapter[predec_i]) then -- underpromoted
+						
+						-- lose 1/8 more value each chapter underpromoted until value reaches 0
+						-- this method is arbitrary
+						self.units[unit_i].LPFactor[predec_i][chapter_i] = 
+							math.max(0, 1 - (1 + chapter_i - earliestPromoChapter[0])/8)
+					else 
+						self.units[unit_i].LPFactor[predec_i][chapter_i] = 1
+					end
+				end
+			end
+		end
+		
+		-- increment number of potential predecs of this type
+		maxPredec[PIType] = maxPredec[PIType] + 1 
 	end
 end
 
--- FE6 Normal Mode, Good Ending, chapters from 0
+-- FE6 Normal Mode, Good Ending
 P.sixNM = gameDataObj:new()
 
 P.sixNM.unitData = {
@@ -289,6 +308,10 @@ P.sixNM.chapters = {
 	"25  Beyond the Darkness"
 }
 
+-- promo Item Acquire Time
+-- sparse array of {chapter, item type, # of items}
+-- most items are not convenient to use mid chapter
+-- assume they are used at start of next chapter
 P.sixNM.pIAcqTime = {
 	--chapter 1
 	-- 2
@@ -472,10 +495,6 @@ P.sevenHNM.chapters = {
 	"33  Light"
 }
 
--- promo Item Acquire Time
--- sparse array of {chapter, item type, # of items}
--- most items are not convenient to use mid chapter
--- assume they are used at start of next chapter
 P.sevenHNM.pIAcqTime = {
 	--chapter 
 	--11 /1

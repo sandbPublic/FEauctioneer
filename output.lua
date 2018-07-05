@@ -1,5 +1,5 @@
 local promoStrings = {"kCrst", "hCrst",  "oBolt", "eWhip", "gRing", "hSeal", "oSeal", "FellC", "eSeal"}
-promoStrings[0] = "None "
+promoStrings[0] = "     "
 
 -- format a string into 10 chars with an extra space
 local function tenChar(str)
@@ -38,27 +38,39 @@ function auctionStateObj:printBids(bids, str)
 		str = str ..  tenChar(string.format("%06.2f", self.bidSums[player_i]))
 	end
 	print(str)
+	
+	print("max unrestricted satisfaction: " .. tostring(self.maxUSat))
 end
 
 function auctionStateObj:printTeams()
 	local teams = self:teams()
-
-	local adjBids = self:adjustedBids()
 	
 	for player_i = 1, self.players.count do
 		print()
-		print(tenChar(self.players[player_i]) .. "bids   item   adjusted bid")
+		
+		local str = tenChar(self.players[player_i])
+		for player_j = 1, self.players.count do
+			if player_i == player_j then
+				str = str .. "   V   "
+			else
+				str = str .. "       "
+			end
+		end
+		str = str .. " item"
+		print(str)
 		
 		for teamMember_i = 1, self.maxTeamSize do
 			local unit_i = teams[player_i][teamMember_i]
-			local str = tenChar(self.gameData.units[unit_i].name)
-		
-			str = str .. string.format("%5.2f  ", self.bids[player_i][unit_i]) ..
-				promoStrings[self.gameData.units[unit_i].promoItem] .. "  "
 			
-			if self.bids[player_i][unit_i] ~= adjBids[player_i][unit_i] then
-				str = str .. string.format("%5.2f  ", adjBids[player_i][unit_i])
+			local str = tenChar(self.gameData.units[unit_i].name)
+			for player_j = 1, self.players.count do
+				if player_i == player_j then
+					str = str .. string.format("~%5.2f~", self.bids[player_j][unit_i])
+				else
+					str = str .. string.format(" %5.2f ", self.bids[player_j][unit_i])
+				end
 			end
+			str = str .. " " .. promoStrings[self.gameData.units[unit_i].promoItem]
 			print(str)
 		end
 	end
@@ -183,16 +195,24 @@ function auctionStateObj:printLatePromotionFactor()
 	print("Late Promotion Factors")
 
 	for unit_i = 1, self.gameData.units.count do
-		local str = tenChar(self.gameData.units[unit_i].name)
+		print(self.gameData.units[unit_i].name)
 	
-		if self.gameData.units[unit_i].promoItem ~= 0 then
+		if self.gameData.units[unit_i].LPFactor.adjusted then
 			local itemReq_i = 1
 			while self.gameData.units[unit_i].LPFactor[itemReq_i] do
-				str = str .. string.format("%5.3f ", self.gameData.units[unit_i].LPFactor[itemReq_i])
+				local str = tostring(itemReq_i) .. "  "
+				
+				for chapter_i = self.gameData.units[unit_i].joinChapter, 
+					self.gameData.units[unit_i].lastChapter do
+				
+					str = str .. string.format("%d ", 
+						self.gameData.units[unit_i].LPFactor[itemReq_i][chapter_i] * 8)
+				end
+				
+				print(str)
 				itemReq_i = itemReq_i + 1
 			end
 		end
-		print(str)
 	end
 end
 
