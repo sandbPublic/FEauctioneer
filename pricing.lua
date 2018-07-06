@@ -223,7 +223,7 @@ function auctionStateObj:adjustedValueMatrix(vMatrix)
 	return adjVMatrix
 end
 
--- split V int VC, run VC and MC through R(), then sum together
+-- split V into VC, run VC and MC through R(), then sum results together again
 -- eg sum(R(V_C)), not R(sum(V_C))
 function auctionStateObj:adjustedVC_Sum_Matrix()
 	local adjVMatrix = {}

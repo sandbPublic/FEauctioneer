@@ -220,7 +220,7 @@ nonPerms = {} -- check identity, swap, disconnected rotations
 -- these are not needed because identity changes nothing, swaps are already done in O(n^2),
 -- and net+ disconnected rotations can be accomplished by multiple net+ connected rotations
 nonPerms.count = 0
-local function permgen (a, n) -- a is an arrangement
+local function permgen(a, n) -- a is an arrangement
 	if not a.size then
 		a.size = n
 	end 
@@ -275,6 +275,12 @@ function auctionStateObj:improveAllocationPermute(printV)
 
 	local currentValue = self:allocationScore()
 	local permuted = false
+	
+	-- make sure this are clear from any previous pass
+	perms = {}
+	perms.count = 0
+	nonPerms = {}
+	nonPerms.count = 0
 	
 	local permGenTable = {}
 	for player_i = 1, self.players.count do

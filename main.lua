@@ -15,7 +15,6 @@ function auctionStateObj:standardProcess()
 	
 	self:exhaustiveSwaps(true)
 	
-	--[[
 	print()
 	print(string.format("current score: %-6.2f", self:allocationScore()))
 	print("optimizing permutations")	
@@ -23,7 +22,6 @@ function auctionStateObj:standardProcess()
 		emu.frameadvance()
 		print("permute pass")
 	end
-	]]
 	
 	print()
 	print("--Final teams--")
