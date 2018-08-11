@@ -286,7 +286,7 @@ function auctionStateObj:allocationScore(vMatrix)
 	local netSpiteValue = 0	
 	for player_i = 1, self.players.count do
 		netSpiteValue = netSpiteValue + spiteValue(vMatrix[player_i],player_i) 
-			+ vMatrix[player_i][player_i] / (self.maxUSat * 50)
+			+ vMatrix[player_i][player_i] / 8
 	end
 	
 	return netSpiteValue

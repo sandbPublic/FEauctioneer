@@ -470,19 +470,22 @@ P.sevenHNM.unitData = {
 P.sevenHNMold.unitData = {
 	--chapter
 	--11 / 1
+	--{"Hector",		1, promo_NO},
 	--12 / 2
 	{"Matthew",		2, promo_FC}, -- free for 11/1
 	{"Serra",		2, promo_GR},
 	{"Oswin",		2, promo_KC},
+	--{"Marcus<=19x",	2, promo_NO},
 	{"Eliwood",		2, promo_HS},
 	{"Lowen",		2, promo_KC},
 	{"Rebecca",		2, promo_OB},
 	{"Dorcas",		2, promo_HC},
 	{"Bartre&Karla",	2, promo_HC},
-	--{"Marcus<=19x",	2, promo_NO},
+	
 	--13 / 3
 	{"Guy",			3, promo_HC},
 	--13x/ 4
+	--{"Merlinus", 4, promo_NO}
 	--14 / 5
 	{"Erk",			5, promo_GR},
 	
@@ -491,8 +494,8 @@ P.sevenHNMold.unitData = {
 	--16 / 7
 	{"Florina",		7, promo_EW},
 	
-	{"Lyn",			8, promo_HS}, -- free during join chapter
-	{"Sain",		8, promo_KC},
+	{"Lyn",			8, promo_HS},
+	{"Sain",		8, promo_KC}, -- free during join chapter
 	{"Kent",		8, promo_KC},
 	{"Wil",			8, promo_OB},
 	--17 / 8
@@ -507,8 +510,9 @@ P.sevenHNMold.unitData = {
 	--19x/12
 	--20 /13
 	--{"Marcus>=20",	13, promo_NO},
-	{"Legault",		13, promo_FC}, -- can't really help during join chapter?	
+	{"Legault",		13, promo_FC}, -- can't really help during join chapter?
 	--21 /14
+	--{"Ninian/Nils", 14, promo_NO},
 	--22 /15
 	{"Isadora",		15, promo_NO},
 	{"Heath",		15, promo_EW},
@@ -534,6 +538,7 @@ P.sevenHNMold.unitData = {
 	--30 /25
 	--31 /26
 	--31x/27
+	--{"Karla",	27, promo_NO},
 	--32 /28
 	--{"Renault",		28, promo_NO}
 	--32x/29
@@ -664,6 +669,8 @@ P.sevenHNMold.pIAcqTime = P.sevenHNM.pIAcqTime
 -- FE8 Hard Mode, assume Eirika route?
 P.eightHM = gameDataObj:new()
 
+P.eightHM2 = gameDataObj:new()
+
 P.eightHM.unitData = {
 	-- P/ 1
 	--{"Eirika",	1, promo_HS},
@@ -724,6 +731,67 @@ P.eightHM.unitData = {
 	--21/23
 }
 
+P.eightHM2.unitData = {
+	-- P/ 1
+	--{"Eirika",	1, promo_HS},
+	-- 1/ 2
+	{"Franz",		2, promo_KC},
+	{"Gilliam",		2, promo_KC},
+	-- 2/ 3
+	{"Vanessa",		3, promo_EW},
+	{"Moulder",		3, promo_GR},
+	{"Ross",		3, promo_O8}, -- can promo_HC
+	{"Garcia",		3, promo_HC},
+	-- 3/ 4
+	{"Neimi",		4, promo_OB},
+	{"Colm",		4, promo_O8},
+	-- 4/ 5
+	{"Artur",		5, promo_GR},
+	{"Lute",		5, promo_GR},
+	-- 5/ 6
+	{"Natasha",		6, promo_GR},
+	{"Joshua",		6, promo_HC},
+	--5x/ 7
+	--{"Orson",		7, promo_NO},
+	-- 6/ 8
+	{"Seth>=6",		9, promo_NO},
+	-- 7/ 9
+	-- 8/10
+	{"Forde",		10, promo_KC},
+	{"Kyle",		10, promo_KC},
+	-- 9/11
+	{"Tana",		11, promo_EW}, -- same in both routes, mostly unuseable in eph9
+	{"Amelia",		11, promo_KC}, -- returns in eir 13
+	--10/12
+	{"Gerik",		12, promo_HC}, -- 13/15 +3 eph
+	--{"Tethys",	12, promo_NO}, -- 13/15 +3 eph
+	{"Innes",		12, promo_NO}, -- 15/17 +5 eph
+	{"Marisa",		12, promo_HC}, -- 12/14 +2 eph
+	--11/13
+	{"Dozla",		13, promo_NO},
+	{"L'Arachel",	13, promo_GR},
+	--12/14
+	{"Saleh",		14, promo_NO}, -- 15/17 +3 eph 
+	{"Ewan",		14, promo_GR},
+	--13/15
+	{"Cormag",		15, promo_EW}, -- 10/12 -3 eph
+	--14/16
+	{"Rennac",		16, promo_NO},
+	--15/17
+	{"Duessel",		17, promo_NO}, -- 10/12 -5 eph
+	{"Knoll",		17, promo_GR},
+	--16/18
+	{"2nd Lord",	18, promo_HS},
+	{"Myrrh",		18, promo_NO},
+	--17/19
+	{"Syrene",		19, promo_NO},
+	--18/20
+	--19/21
+	--20/22
+	--21/23
+	{"BLANK",		23, promo_NO}
+}
+
 P.eightHM.chapters = {
 	"Prologue: The Fall of Renais",
 	" 1  Escape!",
@@ -749,6 +817,8 @@ P.eightHM.chapters = {
 	"20  Darkling Woods",
 	"21  Sacred Stones"
 }
+
+P.eightHM2.chapters = P.eightHM.chapters
 
 P.eightHM.pIAcqTime = {
 	-- P/ 1
@@ -800,13 +870,16 @@ P.eightHM.pIAcqTime = {
 	{18, promo_KC, 1}, -- chest
 	{18, promo_HC, 1}, -- enemy
 	
+	{19, promo_HS, 2},
 	--17/19
-	{19, promo_GR, 1}, -- mage
+	{19, promo_GR, 1}  -- mage
 	
 	--18/20
 	--19/21
 	--20/22
 	--21/23
 }
+
+P.eightHM2.pIAcqTime = P.eightHM.pIAcqTime
 
 return gameDataObj

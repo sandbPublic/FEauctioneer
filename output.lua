@@ -5,17 +5,21 @@ local function tenChar(str)
 	return string.format("%-10.10s ", str)
 end
 
+function auctionStateObj:playerList()
+	local str = ""
+	for player_i = 1, self.players.count do
+		str = str .. tenChar(self.players[player_i])
+	end
+	return str
+end
+
 function auctionStateObj:printBids(bids, str)
 	bids = bids or self.bids
 	str = str or "-BIDS-"
 	
 	print()
 	print(str)
-	local str = tenChar("")
-	for player_i = 1, self.players.count do
-		str = str .. tenChar(self.players[player_i])
-	end
-	print(str)
+	print(tenChar("") .. self:playerList())
 	
 	for unit_i = 1, self.gameData.units.count do
 		str = tenChar(self.gameData.units[unit_i].name)
@@ -43,12 +47,15 @@ end
 
 function auctionStateObj:printTeams()
 	local teams = self:teams()
+	local paretoPrices = self:paretoPrices(self:adjustedVC_Sum_Matrix())
 	
 	for player_i = 1, self.players.count do
 		print()
 		
+		local sums = {}
 		local str = tenChar(self.players[player_i])
 		for player_j = 1, self.players.count do
+			sums[player_j] = 0
 			if player_i == player_j then
 				str = str .. "   V   "
 			else
@@ -58,11 +65,14 @@ function auctionStateObj:printTeams()
 		str = str .. " item   chapter"
 		print(str)
 		
+		
 		for teamMember_i = 1, self.maxTeamSize do
 			local unit_i = teams[player_i][teamMember_i]
 			
-			local str = tenChar(self.gameData.units[unit_i].name)
+			str = tenChar(self.gameData.units[unit_i].name)
 			for player_j = 1, self.players.count do
+				sums[player_j] = sums[player_j] + self.bids[player_j][unit_i]
+			
 				if player_i == player_j then
 					str = str .. string.format("~%5.2f~", self.bids[player_j][unit_i])
 				else
@@ -76,6 +86,38 @@ function auctionStateObj:printTeams()
 			
 			print(str)
 		end
+		
+		str = "Raw sums:  "
+		for player_j = 1, self.players.count do
+			str = str.. string.format(" %5.2f ", sums[player_j])
+		end
+		print(str)
+		
+		print(string.format("HANDICAP: %5.2f", paretoPrices[player_i]))
+	end
+end
+
+function auctionStateObj:printRawHandicapImpacts()
+	print()
+	print("Perceived Benefit from Raw Handicaps (academic only, raw not used)")
+	print(tenChar("") .. self:playerList())
+	
+	for unit_i = 1, self.gameData.units.count do
+		local str = tenChar(self.gameData.units[unit_i].name)
+		for player_i = 1, self.players.count do
+		
+			local opponents = self.players.count-1
+		
+			local rhi = (self.bids[player_i][unit_i] + self.bids[self.owner[unit_i]][unit_i]/opponents) 
+				* opponents/self.players.count
+		
+			if self.owner[unit_i] == player_i then
+				rhi = 0
+			end
+		
+			str = str ..  tenChar(string.format(" %5.2f", rhi))
+		end
+		print(str)
 	end
 end
 
@@ -128,16 +170,11 @@ end
 
 -- also print handicaps and satisfaction
 function auctionStateObj:printTeamValueMatrix()
-	local rawVMatrix = self:teamValueMatrix(self.bids)
-	local vMatrix = rawVMatrix
-	
+	local vMatrix = {}	
 	local function printMatrix(header, noSat)
 		print()
 		print(header)
-		local str = tenChar("")
-		for player_i = 1, self.players.count do
-			str = str .. tenChar(self.players[player_i])
-		end
+		local str = tenChar("") .. self:playerList()
 		if not noSat then
 			str = str .. "satisfaction"
 		end
@@ -155,6 +192,7 @@ function auctionStateObj:printTeamValueMatrix()
 		end
 	end
 
+	vMatrix = self:teamValueMatrix(self.bids)
 	printMatrix("Raw Team Value Matrix")
 	
 	vMatrix = self:adjustedVC_Sum_Matrix()
@@ -227,12 +265,10 @@ function auctionStateObj:printXC_Matrix(XC_Matrix, vStr)
 	print(vStr .. " values by chapter")
 	
 	local sumCheck = {}
-	local str = "    "
 	for player_i = 1, self.players.count do
-		str = str .. tenChar(self.players[player_i])
 		sumCheck[player_i] = 0
 	end
-	print(str)
+	print("    " .. self:playerList())
 	
 	for chapter_i = 1, self.gameData.chapters.count do
 		str = string.format("%-.3s ", self.gameData.chapters[chapter_i])
@@ -242,7 +278,7 @@ function auctionStateObj:printXC_Matrix(XC_Matrix, vStr)
 		end
 		print(str)
 	end
-	str = "sum "
+	local str = "sum "
 	for player_i = 1, self.players.count do
 		str = str .. string.format("%9.5f  ", sumCheck[player_i])
 	end

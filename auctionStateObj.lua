@@ -55,8 +55,8 @@ function P:readBids(bidFile, numPlayers)
 	local playerWeight = {} 
 	if numPlayers < self.players.count then
 		for player_i = numPlayers+1, self.players.count do
-			--playerWeight[player_i] = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
-			--print(string.format("Randomizing player %d, x%4.2f", player_i, playerWeight[player_i]))
+			playerWeight[player_i] = (1 + 0.2*(math.random()-0.5)) -- simulate players bidding higher/lower overall
+			print(string.format("Randomizing player %d, x%4.2f", player_i, playerWeight[player_i]))
 			print(string.format("Creating player %d", player_i))
 		end
 	end
@@ -70,7 +70,7 @@ function P:readBids(bidFile, numPlayers)
 				bidTotal[unit_i] = bidTotal[unit_i] + self.bids[player_i][unit_i]
 			else
 				self.bids[player_i][unit_i] = (bidTotal[unit_i]/numPlayers)
-				--	* playerWeight[player_i] * (1 + 0.6*(math.random()-0.5))
+					* playerWeight[player_i] * (1 + 0.6*(math.random()-0.5))
 			end
 			
 			self.bidSums[player_i] = self.bidSums[player_i] + self.bids[player_i][unit_i]
